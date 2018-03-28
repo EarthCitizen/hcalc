@@ -2,80 +2,100 @@
 
 module Main where
 
-import Control.Monad (forever, forM_)
-import Control.Monad.State.Lazy
+import Control.Monad (forever, forM_, join)
+import Control.Monad.State.Strict
+import Control.Monad.Trans.Class (lift)
+import Data.List.Extra (trim)
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import qualified Data.Text.IO as TI
 import qualified Eval as E
+import FlexNum
 import qualified Parse as P
 import System.Exit
 import System.IO
 import qualified System.Console.Haskeline as HL
+import Data.Maybe (maybe)
 
-data Memory = Memory { getHistory :: [(T.Text, E.EvalResult)] }
+exit = liftIO (exitSuccess :: IO ())
 
-termSettings =
-    HL.Settings {
-        HL.complete = HL.completeFilename,
-        HL.historyFile = Just "history.txt",
-        HL.autoAddHistory = True
-    }
+termSettings = HL.Settings {
+                   HL.complete = HL.completeFilename,
+                   HL.historyFile = Just "history.txt",
+                   HL.autoAddHistory = True
+               }
 
-addHistory :: (T.Text, E.EvalResult) -> StateT Memory IO ()
+data Memory = Memory { getHistory :: [(String, FlexNum)] } deriving (Show)
+
+newtype Session a = Session { unSession :: StateT Memory (HL.InputT IO) a }
+                  deriving (Functor, Applicative, Monad, MonadIO, MonadState Memory, HL.MonadException)
+
+newSession :: Session ()
+newSession = Session $ return ()
+
+getPrompt :: Session (String)
+getPrompt = Session $ lift $ p <$> HL.haveTerminalUI
+    where p True  = "> "
+          p False = ""
+
+tryAction :: HL.InputT IO (Maybe String) -> HL.InputT IO (Maybe String)
+tryAction f = HL.handle (\HL.Interrupt -> liftIO $ (return (Just "")))
+            $ HL.withInterrupt $ f
+
+getSessionLine :: String -> Session (Maybe String)
+getSessionLine prompt = Session $ lift $ tryAction $ HL.getInputLine prompt
+
+processSessionLine :: Maybe String -> Session ()
+processSessionLine m = maybe exit go m
+    where go = processExpression . trim
+
+processExpression :: String -> Session ()
+processExpression "" = return ()
+processExpression l  =
+    case P.parseExpression l of
+        Left err   -> showParseError err l
+        Right expr -> let n = E.eval expr
+                       in addHistory (l, n) >> showResult n
+
+showParseError :: P.ParseError -> String -> Session ()
+showParseError e l = showLine $ P.mkParseErrorMessage e l
+
+showResult :: FlexNum -> Session ()
+showResult (FlexFloat f) = liftIO $ putStrLn $ show f
+showResult (FlexInt i)   = liftIO $ putStrLn $ show i
+
+showLine :: String -> Session ()
+showLine s = liftIO $ putStrLn s
+
+sessionREPL :: Session ()
+sessionREPL = getPrompt >>= \p -> let process = getSessionLine p >>= processSessionLine
+                                   in forever  process
+
+runSession :: Session a -> IO a
+runSession s = HL.runInputT termSettings $ (evalStateT (unSession s) (Memory []))
+
+addHistory :: (String, FlexNum) -> Session ()
 addHistory ln = do
-    m <- get
-    let h = getHistory m
-    put $ Memory $ ln : h
+    modify $ \m -> Memory $ ln : getHistory m
     return ()
 
-showHistoryLine :: (T.Text, E.EvalResult) -> StateT Memory IO ()
-showHistoryLine hl = showLine $ (fst hl) <> " -> " <> (T.pack $ show (snd hl))
+-- showHistoryLine :: (T.Text, E.EvalResult) -> StateT Memory IO ()
+-- showHistoryLine hl = showLine $ (fst hl) <> " -> " <> (T.pack $ show (snd hl))
 
-showLine :: T.Text -> StateT Memory IO ()
-showLine = liftIO . TI.putStrLn
-
-showHistory :: StateT Memory IO ()
-showHistory = do
-    m <- get
-    let h = getHistory m
-    forM_ h showHistoryLine
-
-showPrompt :: StateT Memory IO ()
-showPrompt = liftIO $ putStr "> "
-
-getInputLine :: IO T.Text
-getInputLine = do
-    l <- HL.runInputT termSettings $ HL.getInputLine "> "
-    case l of
-        Nothing -> return ""
-        Just s  -> return $ T.pack s
-
-getNextLine :: StateT Memory IO T.Text
-getNextLine = do
-    ln <- liftIO getInputLine
-    return $ T.strip ln
-
-processExpressionLine :: T.Text -> StateT Memory IO ()
-processExpressionLine l = do
-    case P.parseExpression l of
-        Left err   -> showLine $ P.mkParseErrorMessage l err
-        Right expr ->
-            let i  = E.eval expr
-                is = T.pack $ show i
-             in showLine l >> addHistory (l, i) >> showLine is
-
-processLine :: T.Text -> StateT Memory IO ()
-processLine t = do
-    case t of
-        "quit" -> liftIO (exitSuccess :: IO ())
-        "list" -> showHistory
-        ""     -> return ()
-        e      -> processExpressionLine t
-
-repl = getNextLine >>= processLine
+-- showHistory :: StateT Memory IO ()
+-- showHistory = do
+--     m <- get
+--     let h = getHistory m
+--     forM_ h showHistoryLine
+--
+-- processREPLLine :: T.Text -> StateT Memory IO ()
+-- processREPLLine t = do
+--     case t of
+--         "quit" -> liftIO (exitSuccess :: IO ())
+--         "list" -> showHistory
+--         ""     -> return ()
+--         e      -> processExpressionLine t
 
 main :: IO ()
 main = do
-    runStateT (forever repl) $ Memory []
-    return ()
+    runSession sessionREPL

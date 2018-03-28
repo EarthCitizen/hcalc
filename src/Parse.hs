@@ -1,4 +1,4 @@
-module Parse (Parser, mkParseErrorMessage, parseExpression) where
+module Parse (Parser, ParseError, mkParseErrorMessage, parseExpression) where
 
 import AST
 import Control.Applicative ((<|>))
@@ -11,10 +11,8 @@ import qualified Text.Megaparsec.Char as MC
 import qualified Text.Megaparsec.Expr as ME
 import qualified Text.Megaparsec.Char.Lexer as MCL
 
-import Control.Monad.Combinators (between, skipCount)
-
-type Parser = M.Parsec Void T.Text
-type Error = M.ParseError Char Void
+type Parser = M.Parsec Void String
+type ParseError = M.ParseError Char Void
 
 binaryl c t = ME.InfixL (c <$ symbol t)
 binaryr c t = ME.InfixR (c <$ symbol t)
@@ -30,10 +28,10 @@ operators = [[binaryr OperExp "^"]
 space :: Parser ()
 space = MC.space
 
-symbol :: M.Tokens T.Text -> Parser (M.Tokens T.Text)
+symbol :: M.Tokens String -> Parser (M.Tokens String)
 symbol = MCL.symbol space
 
-discard :: M.Tokens T.Text -> Parser ()
+discard :: M.Tokens String -> Parser ()
 discard t = () <$ symbol t
 
 expression = ME.makeExprParser term operators
@@ -45,30 +43,27 @@ doNothing :: Parser ()
 doNothing = return ()
 
 parens :: Parser Expression
-parens = between (symbol "(") (symbol ")") expression
+parens = M.between (symbol "(") (symbol ")") expression
 
 float :: Parser Expression
-float =
-    let signed = MCL.signed doNothing MCL.float
-     in lexeme (LitFloat <$> signed)
+float = let signed = MCL.signed doNothing MCL.float
+         in lexeme (LitFloat <$> signed)
 
 integer :: Parser Expression
-integer =
-    let signed = MCL.signed doNothing MCL.decimal
-     in lexeme (LitInt <$> signed)
+integer = let signed = MCL.signed doNothing MCL.decimal
+           in lexeme (LitInt <$> signed)
 
 term :: Parser Expression
 term = parens <|> (M.try float) <|> integer
 
-mkParseErrorMessage :: T.Text -> Error -> T.Text
-mkParseErrorMessage i e =
+mkParseErrorMessage :: ParseError -> String -> String
+mkParseErrorMessage e l =
     let colNum  = M.unPos . M.sourceColumn . NE.head . M.errorPos $ e
-        srcLine = i <> "\n"
-        indLine = (T.replicate (colNum - 1) " ") <> "^\n"
-        errMsg  = T.pack . M.parseErrorTextPretty $ e
+        srcLine = l <> "\n"
+        indLine = (replicate (colNum - 1) ' ') <> "^\n"
+        errMsg  = M.parseErrorTextPretty $ e
      in srcLine <> indLine <> errMsg
 
-parseExpression :: T.Text -> Either Error Expression
-parseExpression t =
-    let ep = expression <* M.eof
-     in M.parse ep "" t
+parseExpression :: String -> Either ParseError Expression
+parseExpression t = let ep = expression <* M.eof
+                     in M.parse ep "" t
