@@ -18,7 +18,7 @@ executable hcalc
   main-is:             Main.hs
   default-language:    Haskell2010
   default-extensions:  OverloadedStrings
-  other-modules:       AST, Eval, FlexNum, Parse
+  other-modules:       Alias, AST, Error, Eval, FlexNum, FnPredef, Parse, Runtime
   build-depends:       base >= 4.7 && < 5
                      , mtl == 2.2.2
                      , megaparsec == 6.4.1
@@ -28,3 +28,4 @@ executable hcalc
                      , transformers == 0.5.2.0
                      , Shellac == 0.9.9
                      , extra == 1.6.5
+                     , containers == 0.5.10.2

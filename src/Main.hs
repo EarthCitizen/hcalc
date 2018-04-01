@@ -9,8 +9,10 @@ import Data.List.Extra (trim)
 import Data.Semigroup ((<>))
 import qualified Data.Text as T
 import qualified Data.Text.IO as TI
+import Error
 import qualified Eval as E
 import FlexNum
+import Runtime
 import qualified Parse as P
 import System.Exit
 import System.IO
@@ -25,10 +27,8 @@ termSettings = HL.Settings {
                    HL.autoAddHistory = True
                }
 
-data Memory = Memory { getHistory :: [(String, FlexNum)] } deriving (Show)
-
-newtype Session a = Session { unSession :: StateT Memory (HL.InputT IO) a }
-                  deriving (Functor, Applicative, Monad, MonadIO, MonadState Memory, HL.MonadException)
+newtype Session a = Session { unSession :: StateT Runtime (HL.InputT IO) a }
+                  deriving (Functor, Applicative, Monad, MonadIO, MonadState Runtime, HL.MonadException)
 
 newSession :: Session ()
 newSession = Session $ return ()
@@ -54,8 +54,14 @@ processExpression "" = return ()
 processExpression l  =
     case P.parseExpression l of
         Left err   -> showParseError err l
-        Right expr -> let n = E.eval expr
-                       in addHistory (l, n) >> showResult n
+        Right expr -> do
+            rt <- get
+            let ef = E.eval expr $ getStore rt
+            case ef of
+                Left (Error err) -> showLine err
+                Right result     -> showResult result
+        -- let n = E.eval expr
+                       -- in {-- addHistory (l, n) >> --} showResult n
 
 showParseError :: P.ParseError -> String -> Session ()
 showParseError e l = showLine $ P.mkParseErrorMessage e l
@@ -72,12 +78,12 @@ sessionREPL = getPrompt >>= \p -> let process = getSessionLine p >>= processSess
                                    in forever  process
 
 runSession :: Session a -> IO a
-runSession s = HL.runInputT termSettings $ (evalStateT (unSession s) (Memory []))
+runSession s = HL.runInputT termSettings $ (evalStateT (unSession s) mkDefaultRuntime)
 
-addHistory :: (String, FlexNum) -> Session ()
-addHistory ln = do
-    modify $ \m -> Memory $ ln : getHistory m
-    return ()
+-- addHistory :: (String, FlexNum) -> Session ()
+-- addHistory ln = do
+--     modify $ \m -> Memory $ ln : getHistory m
+--     return ()
 
 -- showHistoryLine :: (T.Text, E.EvalResult) -> StateT Memory IO ()
 -- showHistoryLine hl = showLine $ (fst hl) <> " -> " <> (T.pack $ show (snd hl))

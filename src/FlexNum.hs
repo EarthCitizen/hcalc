@@ -73,17 +73,17 @@ mapAsFloatUnary :: (Double -> Double) -> FlexNum -> FlexNum
 mapAsFloatUnary f (FlexFloat n) = FlexFloat $ f n
 mapAsFloatUnary f (FlexInt   n) = FlexFloat $ f $ fromInteger n
 
--- instance Floating FlexNum where
---     pi    = FlexFloat pi
---     exp   = mapAsFloatUnary exp
---     log   = mapAsFloatUnary log
---     sin   = mapAsFloatUnary sin
---     cos   = mapAsFloatUnary cos
---     asin  = mapAsFloatUnary asin
---     acos  = mapAsFloatUnary acos
---     atan  = mapAsFloatUnary atan
---     sinh  = mapAsFloatUnary sinh
---     cosh  = mapAsFloatUnary cosh
---     asinh = mapAsFloatUnary asinh
---     acosh = mapAsFloatUnary acosh
---     atanh = mapAsFloatUnary atanh
+instance Floating FlexNum where
+    pi    = FlexFloat pi
+    exp   = mapAsFloatUnary exp
+    log   = mapAsFloatUnary log
+    sin   = mapAsFloatUnary sin
+    cos   = mapAsFloatUnary cos
+    asin  = mapAsFloatUnary asin
+    acos  = mapAsFloatUnary acos
+    atan  = mapAsFloatUnary atan
+    sinh  = mapAsFloatUnary sinh
+    cosh  = mapAsFloatUnary cosh
+    asinh = mapAsFloatUnary asinh
+    acosh = mapAsFloatUnary acosh
+    atanh = mapAsFloatUnary atanh
