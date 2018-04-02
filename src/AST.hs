@@ -26,10 +26,11 @@ data FnDef = FnReal Name Params FnRef
 
 data Expr = LitFloat Double
           | LitInt   Integer
-          | OperExp Expr Expr
-          | OperMul Expr Expr
-          | OperDiv Expr Expr
-          | OperAdd Expr Expr
-          | OperSub Expr Expr
-          | FnCall Name [Expr]
+          | Negate   Expr
+          | OperExp  Expr Expr
+          | OperMul  Expr Expr
+          | OperDiv  Expr Expr
+          | OperAdd  Expr Expr
+          | OperSub  Expr Expr
+          | FnCall   Name [Expr]
           deriving (Eq, Show)

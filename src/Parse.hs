@@ -28,22 +28,14 @@ operators = [[binaryr OperExp "^"]
 space :: Parser ()
 space = MC.space
 
-space1 :: Parser ()
-space1 = MC.space1
-
 symbol :: M.Tokens String -> Parser (M.Tokens String)
 symbol = MCL.symbol space
 
 discard :: M.Tokens String -> Parser ()
 discard t = () <$ symbol t
 
-expression = lexeme $ ME.makeExprParser term operators
-
 lexeme :: Parser p -> Parser p
 lexeme p = MCL.lexeme space p
-
-lexeme1 :: Parser p -> Parser p
-lexeme1 p = MCL.lexeme space1 p
 
 doNothing :: Parser ()
 doNothing = return ()
@@ -52,12 +44,10 @@ nested :: Parser Expr
 nested = M.between (symbol "(") (symbol ")") expression
 
 float :: Parser Expr
-float = let signed = MCL.signed doNothing MCL.float
-         in lexeme (LitFloat <$> signed)
+float = lexeme (LitFloat <$> MCL.float)
 
 integer :: Parser Expr
-integer = let signed = MCL.signed doNothing MCL.decimal
-           in lexeme (LitInt <$> signed)
+integer = lexeme (LitInt <$> MCL.decimal)
 
 functionCall :: Parser Expr
 functionCall = do
@@ -66,15 +56,18 @@ functionCall = do
     ps <- M.many term
     return $ FnCall i ps
 
--- fnPi :: Parser Expr
--- fnPi = (lexeme . M.try) (MC.string "pi" *> M.notFollowedBy MC.alphaNumChar) >> return FnPi
--- fnPi = (lexeme . M.try) (MC.string "pi" *> M.notFollowedBy MC.alphaNumChar) >> return FnPi
--- fnPi = let signed = MCL.signed doNothing (symbol "pi")
---         in lexeme (FnPi <* signed)
+negated :: Parser Expr -> Parser Expr
+negated p = Negate <$> (MC.char '-' *> p)
 
 term :: Parser Expr
 term = let p = nested <|> (M.try functionCall) <|> (M.try float) <|> (M.try integer)
         in lexeme p
+
+posNegTerm :: Parser Expr
+posNegTerm = (M.try $ negated term) <|> term
+
+expression :: Parser Expr
+expression = M.dbg "debug>" $ lexeme $ ME.makeExprParser posNegTerm operators
 
 mkParseErrorMessage :: ParseError -> String -> String
 mkParseErrorMessage e l =

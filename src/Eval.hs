@@ -24,6 +24,7 @@ eval :: Expr -> Store -> (Either Error FlexNum)
 eval e s = go e
     where go (LitFloat f) = Right $ FlexFloat f
           go (LitInt i)   = Right $ FlexInt i
+          go (Negate en)  = negate <$> go en
           go (OperExp el er) = (^:) <$> (go el) <*> (go er)
           go (OperMul el er) = (*)  <$> (go el) <*> (go er)
           go (OperDiv el er) = (/)  <$> (go el) <*> (go er)
