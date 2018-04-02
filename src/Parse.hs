@@ -73,7 +73,7 @@ functionCall = do
 --         in lexeme (FnPi <* signed)
 
 term :: Parser Expr
-term = let p = nested <|> (M.try functionCall) <|> (M.try float) <|> integer
+term = let p = nested <|> (M.try functionCall) <|> (M.try float) <|> (M.try integer)
         in lexeme p
 
 mkParseErrorMessage :: ParseError -> String -> String

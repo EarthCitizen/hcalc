@@ -17,8 +17,22 @@ mkRuntime :: Runtime
 mkRuntime = Runtime [] M.empty
 
 preDefFns :: [FnDef]
-preDefFns = [ FnReal "pi" []     (FnNullary pi)
-            , FnReal "sin" ["x"] (FnUnary sin)
+preDefFns = [ FnReal "pi"    []    (FnNullary pi)
+            , FnReal "sqrt"  ["x"] (FnUnary sqrt)
+            , FnReal "acos"  ["x"] (FnUnary acos)
+            , FnReal "asin"  ["x"] (FnUnary asin)
+            , FnReal "atan"  ["x"] (FnUnary atan)
+            , FnReal "cos"   ["x"] (FnUnary cos)
+            , FnReal "sin"   ["x"] (FnUnary sin)
+            , FnReal "tan"   ["x"] (FnUnary tan)
+            , FnReal "acosh" ["x"] (FnUnary acosh)
+            , FnReal "asinh" ["x"] (FnUnary asinh)
+            , FnReal "atanh" ["x"] (FnUnary atanh)
+            , FnReal "cosh"  ["x"] (FnUnary cosh)
+            , FnReal "sinh"  ["x"] (FnUnary sinh)
+            , FnReal "tanh"  ["x"] (FnUnary tanh)
+            , FnReal "exp"   ["x"] (FnUnary exp)
+            , FnReal "log"   ["x"] (FnUnary log)
             ]
 
 fnDefToTuple :: FnDef -> (Name, FnDef)
