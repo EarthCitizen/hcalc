@@ -67,7 +67,7 @@ posNegTerm :: Parser Expr
 posNegTerm = (M.try $ negated term) <|> term
 
 expression :: Parser Expr
-expression = M.dbg "debug>" $ lexeme $ ME.makeExprParser posNegTerm operators
+expression = {- M.dbg "debug>" $ -} lexeme $ ME.makeExprParser posNegTerm operators
 
 mkParseErrorMessage :: ParseError -> String -> String
 mkParseErrorMessage e l =
