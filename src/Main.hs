@@ -58,8 +58,8 @@ processExpression l  =
             rt <- get
             let ef = E.eval expr $ getStore rt
             case ef of
-                Left (Error err) -> showLine err
-                Right result     -> showResult result
+                Left  err    -> showLine $ errorMsg err
+                Right result -> showResult result
         -- let n = E.eval expr
                        -- in {-- addHistory (l, n) >> --} showResult n
 

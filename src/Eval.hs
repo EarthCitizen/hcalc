@@ -17,7 +17,7 @@ import Runtime
 type Store = M.Map Name FnDef
 
 getFn :: Name -> Store -> Either Error FnDef
-getFn n s = case M.lookup n s of Nothing -> Left $ Error "Function not found"
+getFn n s = case M.lookup n s of Nothing -> Left $ FunctionNotFoundError n
                                  Just fr -> Right fr
 
 eval :: Expr -> Store -> (Either Error FlexNum)
@@ -33,11 +33,19 @@ eval e s = go e
           go (FnCall name exps) = do
               (FnReal _ _ fr) <- getFn name s
               fnums <- mapM go exps
-              callFnRef fr fnums
+              case callFnRef fr fnums of
+                  Left (ex, ac) -> Left $ ArityMismatchError name ex ac
+                  Right flexnum -> Right flexnum
 
-callFnRef :: FnRef -> [FlexNum] -> Either Error FlexNum
+callFnRef :: FnRef -> [FlexNum] -> Either (Integer, Integer) FlexNum
 callFnRef (FnNullary fn) [] = Right fn
 callFnRef (FnUnary   fn) (p1:[]) = Right $ fn p1
 callFnRef (FnBinary  fn) (p1:p2:[]) = Right $ fn p1 p2
 callFnRef (FnTernary fn) (p1:p2:p3:[]) = Right $ fn p1 p2 p3
-callFnRef _ _ = Left $ Error "Arity mismatch"
+callFnRef fr ps = Left $ (getParamCount fr, fromIntegral $ length ps)
+
+getParamCount :: FnRef -> Integer
+getParamCount (FnNullary _) = 0
+getParamCount (FnUnary   _) = 1
+getParamCount (FnBinary  _) = 2
+getParamCount (FnTernary _) = 3

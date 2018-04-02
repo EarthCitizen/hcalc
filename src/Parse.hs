@@ -53,7 +53,7 @@ functionCall :: Parser Expr
 functionCall = do
     i <- (:) <$> MC.letterChar <*> M.many MC.alphaNumChar
     space
-    ps <- M.many term
+    ps <- M.many posNegTerm
     return $ FnCall i ps
 
 negated :: Parser Expr -> Parser Expr
@@ -67,7 +67,7 @@ posNegTerm :: Parser Expr
 posNegTerm = (M.try $ negated term) <|> term
 
 expression :: Parser Expr
-expression = {- M.dbg "debug>" $ -} lexeme $ ME.makeExprParser posNegTerm operators
+expression = {- M.dbg "debug" $ -} lexeme $ ME.makeExprParser posNegTerm operators
 
 mkParseErrorMessage :: ParseError -> String -> String
 mkParseErrorMessage e l =
