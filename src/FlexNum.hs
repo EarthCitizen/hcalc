@@ -4,7 +4,7 @@ import Data.Ratio (denominator, numerator)
 
 data FlexNum = FlexFloat Double | FlexInt Integer deriving (Eq, Show)
 
-(^:) el er = doExp (el, er)
+(^:) el er = doExp $ applyConversionRule el er
 
 applyConversionRule :: FlexNum -> FlexNum -> (FlexNum, FlexNum)
 applyConversionRule l@(FlexFloat _) r@(FlexFloat _) = (l, r)
