@@ -24,13 +24,13 @@ data FnDef = FnReal Name Params FnRef
            | FnExpr Name Params Expr
            deriving (Show)
 
-data Expr = LitFloat Double
-          | LitInt   Integer
-          | Negate   Expr
-          | OperExp  Expr Expr
-          | OperMul  Expr Expr
-          | OperDiv  Expr Expr
-          | OperAdd  Expr Expr
-          | OperSub  Expr Expr
-          | FnCall   Name [Expr]
+data Expr = LitFloat Location Double
+          | LitInt   Location Integer
+          | Negate   Location Expr
+          | OperExp  Location Expr Expr
+          | OperMul  Location Expr Expr
+          | OperDiv  Location Expr Expr
+          | OperAdd  Location Expr Expr
+          | OperSub  Location Expr Expr
+          | FnCall   Location Name [Expr]
           deriving (Eq, Show)

@@ -53,22 +53,22 @@ processExpression :: String -> Session ()
 processExpression "" = return ()
 processExpression l  =
     case P.parseExpression l of
-        Left err   -> showParseError err l
+        Left err   -> showLines $ mkDetailedError l err
         Right expr -> do
             rt <- get
             let ef = E.eval expr $ getStore rt
             case ef of
-                Left  err    -> showLine $ errorMsg err
+                Left  err    -> showLines $ mkDetailedError l err
                 Right result -> showResult result
         -- let n = E.eval expr
                        -- in {-- addHistory (l, n) >> --} showResult n
 
-showParseError :: P.ParseError -> String -> Session ()
-showParseError e l = showLine $ P.mkParseErrorMessage e l
-
 showResult :: FlexNum -> Session ()
 showResult (FlexFloat f) = liftIO $ putStrLn $ show f
 showResult (FlexInt i)   = liftIO $ putStrLn $ show i
+
+showLines :: [String] -> Session ()
+showLines ss = mapM_ showLine ss
 
 showLine :: String -> Session ()
 showLine s = liftIO $ putStrLn s
