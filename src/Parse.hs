@@ -1,4 +1,4 @@
-module Parse (Parser, parseExpression) where
+module Parse (Parser, parseExpression, parseStmt) where
 
 import Alias
 import AST
@@ -86,6 +86,15 @@ posNegTerm = (M.try $ negated term) <|> term
 expression :: Parser Expr
 expression = {-- M.dbg "debug" $ --} (lexeme $ ME.makeExprParser (space *> posNegTerm) operators)
 
+statement :: Parser Stmt
+statement = M.try stmtFnDef <|> (StmtExpr <$> location <*> expression)
+
+stmtFnDef :: Parser Stmt
+stmtFnDef = do
+    (n:ps) <- M.sepEndBy1 identifier space1
+    symbol "="
+    StmtFnDef <$> location <*> (FnExpr n ps <$> expression)
+
 location :: Parser Location
 location = do
     sp <- M.getPosition
@@ -106,3 +115,9 @@ parseExpression t = let ep = expression <* M.eof
                      in case M.parse ep "" t of
                          Left ipe -> Left $ ipeToParseErr ipe
                          Right e  -> Right e
+
+parseStmt :: String -> Either Error Stmt
+parseStmt t = let ep = statement <* M.eof
+               in case M.parse ep "" t of
+                   Left ipe -> Left $ ipeToParseErr ipe
+                   Right e  -> Right e

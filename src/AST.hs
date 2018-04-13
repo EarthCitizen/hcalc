@@ -34,3 +34,7 @@ data Expr = LitFloat Location Double
           | OperSub  Location Expr Expr
           | FnCall   Location Name [Expr]
           deriving (Eq, Show)
+
+data Stmt = StmtFnDef Location FnDef
+          | StmtExpr  Location Expr
+          deriving (Show)
