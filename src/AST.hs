@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 
-module AST where
+module AST (FnRef(..), FnDef(..), Expr(..), Stmt(..)) where
 
 import Alias
 import FlexNum

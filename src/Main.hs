@@ -2,6 +2,7 @@
 
 module Main where
 
+import AST
 import Control.Monad (forever, forM_, join)
 import Control.Monad.State.Strict
 import Control.Monad.Trans.Class (lift)
@@ -18,6 +19,7 @@ import System.Exit
 import System.IO
 import qualified System.Console.Haskeline as HL
 import Data.Maybe (maybe)
+import Validation
 
 exit = liftIO (exitSuccess :: IO ())
 
@@ -47,21 +49,26 @@ getSessionLine prompt = Session $ lift $ tryAction $ HL.getInputLine prompt
 
 processSessionLine :: Maybe String -> Session ()
 processSessionLine m = maybe exit go m
-    where go = processExpression . trim
+    where go = processStmt . trim
 
-processExpression :: String -> Session ()
-processExpression "" = return ()
-processExpression l  =
-    case P.parseExpression l of
-        Left err   -> showLines $ mkDetailedError l err
-        Right expr -> do
+processStmt :: String -> Session ()
+processStmt "" = return ()
+processStmt l  =
+    case P.parseStmt l of
+        Left err   -> showError l err
+        Right (StmtFnDef _ fnDef) ->
+            case validateFnDef fnDef of
+                Left err -> showError l err
+                Right _  -> addFunction fnDef
+        Right (StmtExpr _ expr) -> do
             rt <- get
-            let ef = E.eval expr $ getStore rt
+            let ef = E.evalExpr expr $ getStore rt
             case ef of
-                Left  err    -> showLines $ mkDetailedError l err
+                Left  err    -> showError l err
                 Right result -> showResult result
-        -- let n = E.eval expr
-                       -- in {-- addHistory (l, n) >> --} showResult n
+
+showError :: String -> Error -> Session()
+showError ln err = showLines $ mkDetailedError ln err
 
 showResult :: FlexNum -> Session ()
 showResult (FlexFloat f) = liftIO $ putStrLn $ show f

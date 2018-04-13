@@ -1,4 +1,4 @@
-module Parse (Parser, parseExpression, parseStmt) where
+module Parse (Parser, parseExpr, parseStmt) where
 
 import Alias
 import AST
@@ -110,11 +110,11 @@ ipeToParseErr e =
         errMsg = M.parseErrorTextPretty $ e
      in ParseError (linNum, colNum) errMsg
 
-parseExpression :: String -> Either Error Expr
-parseExpression t = let ep = expression <* M.eof
-                     in case M.parse ep "" t of
-                         Left ipe -> Left $ ipeToParseErr ipe
-                         Right e  -> Right e
+parseExpr :: String -> Either Error Expr
+parseExpr t = let ep = expression <* M.eof
+               in case M.parse ep "" t of
+                   Left ipe -> Left $ ipeToParseErr ipe
+                   Right e  -> Right e
 
 parseStmt :: String -> Either Error Stmt
 parseStmt t = let ep = statement <* M.eof
