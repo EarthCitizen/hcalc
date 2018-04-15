@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 
-module AST (FnRef(..), FnDef(..), Expr(..), Stmt(..)) where
+module AST (FnRef(..), FnDef(..), Expr(..), Stmt(..), getExprLocation) where
 
 import Alias
 import FlexNum
@@ -34,6 +34,17 @@ data Expr = LitFloat Location Double
           | OperSub  Location Expr Expr
           | FnCall   Location Name [Expr]
           deriving (Eq, Show)
+
+getExprLocation :: Expr -> Location
+getExprLocation (LitFloat l _)   = l
+getExprLocation (LitInt   l _)   = l
+getExprLocation (Negate   l _)   = l
+getExprLocation (OperExp  l _ _) = l
+getExprLocation (OperMul  l _ _) = l
+getExprLocation (OperDiv  l _ _) = l
+getExprLocation (OperAdd  l _ _) = l
+getExprLocation (OperSub  l _ _) = l
+getExprLocation (FnCall   l _ _) = l
 
 data Stmt = StmtFnDef Location FnDef
           | StmtExpr  Location Expr
