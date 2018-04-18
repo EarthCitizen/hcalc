@@ -1,8 +1,9 @@
+{-# LANGUAGE StandaloneDeriving #-}
+
 module Eval (runEval) where
 
 import Alias
 import AST
-import Control.Monad (liftM2)
 import Control.Monad.State.Strict
 import Control.Monad.Except
 import Error
@@ -35,6 +36,11 @@ putStore s = do
     (EvalState _ l) <- get
     put $ EvalState s l
 
+getLocation :: EvalContext Location
+getLocation = do
+    (EvalState _ l) <- get
+    return l
+
 getStore :: EvalContext Store
 getStore = do
     (EvalState s _) <- get
@@ -44,11 +50,11 @@ evalExpr :: Expr -> EvalContext FlexNum
 evalExpr (LitFloat _ f) = return $ FlexFloat f
 evalExpr (LitInt   _ i) = return $ FlexInt i
 evalExpr (Negate _ en)  = negate <$> evalExpr en
-evalExpr (OperExp _ el er) = (^:) <$> (evalExpr el) <*> (evalExpr er)
-evalExpr (OperMul _ el er) = (*)  <$> (evalExpr el) <*> (evalExpr er)
-evalExpr (OperDiv _ el er) = (/)  <$> (evalExpr el) <*> (evalExpr er)
-evalExpr (OperAdd _ el er) = (+)  <$> (evalExpr el) <*> (evalExpr er)
-evalExpr (OperSub _ el er) = (-)  <$> (evalExpr el) <*> (evalExpr er)
+evalExpr (OperExp _ el er) = (^:) <$> evalExpr el <*> evalExpr er
+evalExpr (OperMul _ el er) = (*)  <$> evalExpr el <*> evalExpr er
+evalExpr (OperDiv _ el er) = (/)  <$> evalExpr el <*> evalExpr er
+evalExpr (OperAdd _ el er) = (+)  <$> evalExpr el <*> evalExpr er
+evalExpr (OperSub _ el er) = (-)  <$> evalExpr el <*> evalExpr er
 evalExpr (FnCall l name exps) = do
     fnDef <- lookupFn name
     (EvalState os ol) <- get

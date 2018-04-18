@@ -16,12 +16,15 @@ doAdd :: (FlexNum, FlexNum) -> FlexNum
 doAdd ((FlexFloat fl), (FlexFloat fr)) = FlexFloat $ fl + fr
 doAdd ((FlexInt il),   (FlexInt ir))   = FlexInt   $ il + ir
 
+intsToFloatDiv il ir = FlexFloat $ (fromIntegral il) / (fromIntegral ir)
+
 doDiv :: (FlexNum, FlexNum) -> FlexNum
 doDiv ((FlexFloat fl), (FlexFloat fr)) = FlexFloat $ fl / fr
+doDiv ((FlexInt il),   (FlexInt 0))    = intsToFloatDiv il 0
 doDiv ((FlexInt il),   (FlexInt ir))   =
     let (q, r) = il `quotRem` ir
      in case r of 0 -> FlexInt q
-                  _ -> FlexFloat $ (fromIntegral il) / (fromIntegral ir)
+                  _ -> intsToFloatDiv il ir
 
 doExp :: (FlexNum, FlexNum) -> FlexNum
 doExp ((FlexFloat fl), (FlexFloat fr)) = FlexFloat $ fl ** fr

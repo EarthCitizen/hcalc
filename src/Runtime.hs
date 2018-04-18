@@ -1,12 +1,12 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Runtime (Runtime(getStore), mkDefaultRuntime, mkRuntime, addHistory, getFunction) where
+module Runtime (Runtime(getStore), mkDefaultRuntime, mkRuntime, addFunction, addHistory, getFunction) where
 
 import Alias
 import AST
 import Error
 import FlexNum
-import qualified Data.Map.Lazy as M
+import qualified Data.Map.Strict as M
 import Control.Monad.State.Strict
 
 data Runtime = Runtime { getHistory :: [String]
