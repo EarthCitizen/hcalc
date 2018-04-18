@@ -33,20 +33,20 @@ newtype Session a = Session { unSession :: StateT Runtime (HL.InputT IO) a }
 newSession :: Session ()
 newSession = Session $ return ()
 
-getPrompt :: Session (String)
+getPrompt :: Session String
 getPrompt = Session $ lift $ p <$> HL.haveTerminalUI
     where p True  = "> "
           p False = ""
 
 tryAction :: HL.InputT IO (Maybe String) -> HL.InputT IO (Maybe String)
-tryAction f = HL.handle (\HL.Interrupt -> liftIO $ (return (Just "")))
-            $ HL.withInterrupt $ f
+tryAction f = HL.handle (\HL.Interrupt -> liftIO $ return $ Just "")
+            $ HL.withInterrupt f
 
 getSessionLine :: String -> Session (Maybe String)
 getSessionLine prompt = Session $ lift $ tryAction $ HL.getInputLine prompt
 
 processSessionLine :: Maybe String -> Session ()
-processSessionLine m = maybe exit go m
+processSessionLine = maybe exit go
     where go = processStmt . trim
 
 processStmt :: String -> Session ()
@@ -69,11 +69,11 @@ showError :: String -> Error -> Session()
 showError ln err = showLines $ mkDetailedError ln err
 
 showResult :: FlexNum -> Session ()
-showResult (FlexFloat f) = liftIO $ putStrLn $ show f
-showResult (FlexInt i)   = liftIO $ putStrLn $ show i
+showResult (FlexFloat f) = liftIO $ print f
+showResult (FlexInt i)   = liftIO $ print i
 
 showLines :: [String] -> Session ()
-showLines ss = mapM_ showLine ss
+showLines = mapM_ showLine
 
 showLine :: String -> Session ()
 showLine s = liftIO $ putStrLn s
@@ -83,7 +83,7 @@ sessionREPL = getPrompt >>= \p -> let process = getSessionLine p >>= processSess
                                    in forever  process
 
 runSession :: Session a -> IO a
-runSession s = HL.runInputT termSettings $ (evalStateT (unSession s) mkDefaultRuntime)
+runSession s = HL.runInputT termSettings $ evalStateT (unSession s) mkDefaultRuntime
 
 -- addHistory :: (String, FlexNum) -> Session ()
 -- addHistory ln = do

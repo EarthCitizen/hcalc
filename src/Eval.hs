@@ -1,5 +1,3 @@
-{-# LANGUAGE StandaloneDeriving #-}
-
 module Eval (runEval) where
 
 import Alias
@@ -23,7 +21,7 @@ newtype EvalContext a = EvalContext { unEvalContext :: StateT EvalState (Except 
                              , MonadError Error
                              )
 
-runEval :: Expr -> Store -> (Either Error FlexNum)
+runEval :: Expr -> Store -> Either Error FlexNum
 runEval e s = do
     let initState = EvalState s $ getExprLocation e
     runExcept $ evalStateT (unEvalContext $ evalExpr e) initState
@@ -58,7 +56,7 @@ evalExpr (OperSub _ el er) = (-)  <$> evalExpr el <*> evalExpr er
 evalExpr (FnCall l name exps) = do
     fnDef <- lookupFn name
     (EvalState os ol) <- get
-    (callFnDef fnDef exps) <* putStore os
+    callFnDef fnDef exps <* putStore os
 
 lookupFn :: Name -> EvalContext FnDef
 lookupFn n = do
@@ -80,17 +78,17 @@ callFnDef (FnExpr name ps expr) exps = do
         lenExps = ln exps
     case lenPs == lenExps of
         False -> throwError $ ArityMismatchError l name lenPs lenExps
-        True  -> let nfn = \n e -> (n, FnExpr n [] e)
+        True  -> let nfn n e = (n, FnExpr n [] e)
                      zps = zipWith nfn ps exps
                      ns  = M.union (M.fromList zps) s
                   in putStore ns >> evalExpr expr
 
 callFnRef :: FnRef -> [FlexNum] -> Either (Integer, Integer) FlexNum
 callFnRef (FnNullary fn) [] = Right fn
-callFnRef (FnUnary   fn) (p1:[]) = Right $ fn p1
-callFnRef (FnBinary  fn) (p1:p2:[]) = Right $ fn p1 p2
-callFnRef (FnTernary fn) (p1:p2:p3:[]) = Right $ fn p1 p2 p3
-callFnRef fr ps = Left $ (getParamCount fr, ln ps)
+callFnRef (FnUnary   fn) [p1] = Right $ fn p1
+callFnRef (FnBinary  fn) [p1, p2] = Right $ fn p1 p2
+callFnRef (FnTernary fn) [p1, p2, p3] = Right $ fn p1 p2 p3
+callFnRef fr ps = Left (getParamCount fr, ln ps)
 
 getParamCount :: FnRef -> Integer
 getParamCount (FnNullary _) = 0

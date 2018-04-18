@@ -14,7 +14,7 @@ instance Show (FlexNum -> FlexNum -> FlexNum) where
 instance Show (FlexNum -> FlexNum -> FlexNum -> FlexNum) where
     show _ = "(E -> E -> E -> E)"
 
-data FnRef = FnNullary (FlexNum)
+data FnRef = FnNullary FlexNum
            | FnUnary   (FlexNum -> FlexNum)
            | FnBinary  (FlexNum -> FlexNum -> FlexNum)
            | FnTernary (FlexNum -> FlexNum -> FlexNum -> FlexNum)

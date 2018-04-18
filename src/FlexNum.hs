@@ -13,36 +13,36 @@ applyConversionRule f@(FlexFloat _)   (FlexInt   i) = (f, FlexFloat . fromIntegr
 applyConversionRule   (FlexInt   i) f@(FlexFloat _) = (FlexFloat . fromIntegral $ i, f)
 
 doAdd :: (FlexNum, FlexNum) -> FlexNum
-doAdd ((FlexFloat fl), (FlexFloat fr)) = FlexFloat $ fl + fr
-doAdd ((FlexInt il),   (FlexInt ir))   = FlexInt   $ il + ir
+doAdd (FlexFloat fl, FlexFloat fr) = FlexFloat $ fl + fr
+doAdd (FlexInt il,   FlexInt ir)   = FlexInt   $ il + ir
 
-intsToFloatDiv il ir = FlexFloat $ (fromIntegral il) / (fromIntegral ir)
+intsToFloatDiv il ir = FlexFloat $ fromIntegral il / fromIntegral ir
 
 doDiv :: (FlexNum, FlexNum) -> FlexNum
-doDiv ((FlexFloat fl), (FlexFloat fr)) = FlexFloat $ fl / fr
-doDiv ((FlexInt il),   (FlexInt 0))    = intsToFloatDiv il 0
-doDiv ((FlexInt il),   (FlexInt ir))   =
+doDiv (FlexFloat fl, FlexFloat fr) = FlexFloat $ fl / fr
+doDiv (FlexInt il,   FlexInt 0)    = intsToFloatDiv il 0
+doDiv (FlexInt il,   FlexInt ir)   =
     let (q, r) = il `quotRem` ir
      in case r of 0 -> FlexInt q
                   _ -> intsToFloatDiv il ir
 
 doExp :: (FlexNum, FlexNum) -> FlexNum
-doExp ((FlexFloat fl), (FlexFloat fr)) = FlexFloat $ fl ** fr
-doExp ((FlexInt il),   (FlexInt ir))
+doExp (FlexFloat fl, FlexFloat fr) = FlexFloat $ fl ** fr
+doExp (FlexInt il,   FlexInt ir)
     | ir >= 0   = FlexInt $ il ^ ir
-    | otherwise = FlexFloat $ (fromIntegral il) ** (fromIntegral ir)
+    | otherwise = FlexFloat $ fromIntegral il ** fromIntegral ir
 
 doMul :: (FlexNum, FlexNum) -> FlexNum
-doMul ((FlexFloat fl), (FlexFloat fr)) = FlexFloat $ fl * fr
-doMul ((FlexInt il),   (FlexInt ir))   = FlexInt   $ il * ir
+doMul (FlexFloat fl, FlexFloat fr) = FlexFloat $ fl * fr
+doMul (FlexInt il,   FlexInt ir)   = FlexInt   $ il * ir
 
 doSub :: (FlexNum, FlexNum) -> FlexNum
-doSub ((FlexFloat fl), (FlexFloat fr)) = FlexFloat $ fl - fr
-doSub ((FlexInt il),   (FlexInt ir))   = FlexInt   $ il - ir
+doSub (FlexFloat fl, FlexFloat fr) = FlexFloat $ fl - fr
+doSub (FlexInt il,   FlexInt ir)   = FlexInt   $ il - ir
 
 doCompare :: (FlexNum, FlexNum) -> Ordering
-doCompare ((FlexFloat fl), (FlexFloat fr)) = fl `compare` fr
-doCompare ((FlexInt il),   (FlexInt ir))   = il `compare` ir
+doCompare (FlexFloat fl, FlexFloat fr) = fl `compare` fr
+doCompare (FlexInt il,   FlexInt ir)   = il `compare` ir
 
 doAbs :: FlexNum -> FlexNum
 doAbs (FlexFloat f) = FlexFloat $ abs f

@@ -40,10 +40,10 @@ discard :: M.Tokens String -> Parser ()
 discard t = () <$ symbol t
 
 lexeme :: Parser p -> Parser p
-lexeme p = MCL.lexeme space p
+lexeme = MCL.lexeme space
 
 lexeme1 :: Parser p -> Parser p
-lexeme1 p = MCL.lexeme space1 p
+lexeme1 = MCL.lexeme space1
 
 doNothing :: Parser ()
 doNothing = return ()
@@ -62,29 +62,29 @@ identifier = (:) <$> MC.letterChar <*> M.many MC.alphaNumChar
 
 functionCall :: Parser Expr
 functionCall = do
-    let sf = (space1 >> posNegFnParam)
+    let sf = space1 >> posNegFnParam
         ps = M.manyTill sf (M.notFollowedBy sf)
     FnCall <$> location <*> identifier <*> ps
 
 functionParam :: Parser Expr
 functionParam = let unary = (\l i -> FnCall l i []) <$> location <*> identifier
-                 in nested <|> (M.try unary) <|> (M.try float) <|> (M.try integer)
+                 in nested <|> M.try unary <|> M.try float <|> M.try integer
 
 posNegFnParam :: Parser Expr
-posNegFnParam = (M.try $ negated functionParam) <|> functionParam
+posNegFnParam = M.try (negated functionParam) <|> functionParam
 
 negated :: Parser Expr -> Parser Expr
 negated p = Negate <$> location <*> (MC.char '-' *> p)
 
 term :: Parser Expr
-term = let p = nested <|> (M.try functionCall) <|> (M.try float) <|> (M.try integer)
+term = let p = nested <|> M.try functionCall <|> M.try float <|> M.try integer
         in lexeme p
 
 posNegTerm :: Parser Expr
-posNegTerm = (M.try $ negated term) <|> term
+posNegTerm = M.try (negated term) <|> term
 
 expression :: Parser Expr
-expression = {-- M.dbg "debug" $ --} (lexeme $ ME.makeExprParser (space *> posNegTerm) operators)
+expression = {-- M.dbg "debug" $ --} lexeme $ ME.makeExprParser (space *> posNegTerm) operators
 
 statement :: Parser Stmt
 statement = M.try stmtFnDef <|> (StmtExpr <$> location <*> expression)
@@ -107,7 +107,7 @@ ipeToParseErr e =
     let errPos = NE.head $ M.errorPos e
         linNum = fromIntegral . M.unPos $ M.sourceLine errPos
         colNum = fromIntegral . M.unPos $ M.sourceColumn errPos
-        errMsg = M.parseErrorTextPretty $ e
+        errMsg = M.parseErrorTextPretty e
      in ParseError (linNum, colNum) errMsg
 
 parseExpr :: String -> Either Error Expr
