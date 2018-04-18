@@ -4,8 +4,6 @@ module Runtime (Runtime(getStore), mkDefaultRuntime, mkRuntime, addFunction, add
 
 import Alias
 import AST
-import Error
-import FlexNum
 import qualified Data.Map.Strict as M
 import Control.Monad.State.Strict
 

@@ -2,11 +2,9 @@ module Parse (Parser, parseExpr, parseStmt) where
 
 import Alias
 import AST
-import Control.Applicative ((<|>), some)
-import Data.Semigroup ((<>))
+import Control.Applicative ((<|>))
 import Data.Void
 import qualified Data.List.NonEmpty as NE
-import qualified Data.Text as T
 import Error (Error(ParseError))
 import qualified Text.Megaparsec as M
 import qualified Text.Megaparsec.Char as MC

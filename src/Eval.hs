@@ -7,7 +7,6 @@ import Control.Monad.Except
 import Error
 import FlexNum
 import qualified Data.Map.Strict as M
-import Runtime
 
 type Store = M.Map Name FnDef
 

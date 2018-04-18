@@ -1,20 +1,16 @@
 module Main where
 
 import AST
-import Control.Monad (forever, forM_, join)
+import Control.Monad (forever)
 import Control.Monad.State.Strict
 import Control.Monad.Trans.Class (lift)
 import Data.List.Extra (trim)
-import Data.Semigroup ((<>))
-import qualified Data.Text as T
-import qualified Data.Text.IO as TI
 import Error
 import qualified Eval as E
 import FlexNum
 import Runtime
 import qualified Parse as P
 import System.Exit
-import System.IO
 import qualified System.Console.Haskeline as HL
 import Data.Maybe (maybe)
 import Validation
