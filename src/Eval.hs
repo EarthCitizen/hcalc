@@ -53,9 +53,9 @@ evalExpr (OperDiv _ el er) = (/)  <$> evalExpr el <*> evalExpr er
 evalExpr (OperAdd _ el er) = (+)  <$> evalExpr el <*> evalExpr er
 evalExpr (OperSub _ el er) = (-)  <$> evalExpr el <*> evalExpr er
 evalExpr (FnCall l name exps) = do
-    fnDef <- lookupFn name
     (EvalState os ol) <- get
     put $ EvalState os l
+    fnDef <- lookupFn name
     callFnDef fnDef exps <* put (EvalState os ol)
 
 lookupFn :: Name -> EvalContext FnDef
