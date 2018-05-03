@@ -56,7 +56,7 @@ evalExpr (FnCall l name exps) = do
     fnDef <- lookupFn name
     (EvalState os ol) <- get
     put $ EvalState os l
-    callFnDef fnDef exps <* (put $ EvalState os ol)
+    callFnDef fnDef exps <* put (EvalState os ol)
 
 lookupFn :: Name -> EvalContext FnDef
 lookupFn n = do
