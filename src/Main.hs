@@ -62,7 +62,7 @@ processStmt l  =
                 Right result -> showResult result
 
 showError :: String -> Error -> Session()
-showError ln err = showLines $ mkDetailedError ln err
+showError ln err = showLines $ mkDetailedError err
 
 showResult :: FlexNum -> Session ()
 showResult (FlexFloat f) = liftIO $ print f

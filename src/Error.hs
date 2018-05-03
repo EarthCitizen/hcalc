@@ -20,16 +20,17 @@ mkErrorMsg (FunctionNotFoundError _ n) = printf "Function not found: %s" n
 mkErrorMsg (ParseError _ msg) = printf "Parse error: %s" msg
 mkErrorMsg (Error msg) = printf "Error: %s" msg
 
-getColumn :: Error -> Maybe Integer
-getColumn (ArityMismatchError    (_, c) _ _ _) = Just c
-getColumn (FunctionNotFoundError (_, c) _)     = Just c
-getColumn (Error _)                            = Nothing
-getColumn (ParseError (_, c) _)                = Just c
+getLocation :: Error -> Maybe Location
+getLocation (ArityMismatchError    l _ _ _) = Just l
+getLocation (FunctionNotFoundError l _)     = Just l
+getLocation (Error _)                       = Nothing
+getLocation (ParseError l _)                = Just l
 
-mkDetailedError :: String -> Error -> [String]
-mkDetailedError l e =
-    case getColumn e of Nothing -> [l, mkErrorMsg e]
-                        Just c  -> [l, mkPointTo c, mkErrorMsg e]
+mkDetailedError :: Error -> [String]
+mkDetailedError e =
+    case getLocation e of
+        Nothing        -> [mkErrorMsg e]
+        Just (s, _, c) -> [s, mkPointTo c, mkErrorMsg e]
 
 
 mkPointTo :: Integer -> String
