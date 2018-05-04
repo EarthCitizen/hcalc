@@ -1,4 +1,4 @@
-module Eval (runEval) where
+module Eval (eval) where
 
 import Alias
 import AST
@@ -20,10 +20,12 @@ newtype EvalContext a = EvalContext { unEvalContext :: StateT EvalState (Except 
                              , MonadError Error
                              )
 
-runEval :: Expr -> Store -> Either Error FlexNum
-runEval e s = do
-    let initState = EvalState s $ getExprLocation e
-    runExcept $ evalStateT (unEvalContext $ evalExpr e) initState
+eval :: Expr -> Store -> Either Error FlexNum
+eval e s = let initState = EvalState s $ getExprLocation e
+            in runEvalContext (evalExpr e) initState
+
+runEvalContext :: EvalContext a -> EvalState -> Either Error a
+runEvalContext ec es = runExcept $ evalStateT (unEvalContext ec) es
 
 ln :: [a] -> Integer
 ln xs = fromIntegral $ length xs

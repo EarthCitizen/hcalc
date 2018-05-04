@@ -31,6 +31,7 @@ preDefFns = [ FnReal "pi"    []    (FnNullary pi)
             , FnReal "tanh"  ["x"] (FnUnary tanh)
             , FnReal "exp"   ["x"] (FnUnary exp)
             , FnReal "log"   ["x"] (FnUnary log)
+            , FnReal "tst"   ["a", "b"] (FnBinary (+))
             ]
 
 fnDefToTuple :: FnDef -> (Name, FnDef)

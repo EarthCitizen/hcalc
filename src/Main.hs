@@ -56,7 +56,7 @@ processStmt l  =
                 Right _  -> addFunction fnDef
         Right (StmtExpr _ expr) -> do
             rt <- get
-            let ef = E.runEval expr $ getStore rt
+            let ef = E.eval expr $ getStore rt
             case ef of
                 Left  err    -> showError l err
                 Right result -> showResult result
