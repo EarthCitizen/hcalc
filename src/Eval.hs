@@ -2,8 +2,8 @@ module Eval (eval) where
 
 import Alias
 import AST
-import Control.Monad.State.Strict
 import Control.Monad.Except
+import Control.Monad.Reader
 import Error
 import FlexNum
 import qualified Data.Map.Strict as M
@@ -12,11 +12,11 @@ type Store = M.Map Name FnDef
 
 data EvalState = EvalState Store Location deriving (Show)
 
-newtype EvalContext a = EvalContext { unEvalContext :: StateT EvalState (Except Error) a }
+newtype EvalContext a = EvalContext { unEvalContext :: ReaderT EvalState (Except Error) a }
                     deriving ( Functor
                              , Applicative
                              , Monad
-                             , MonadState EvalState
+                             , MonadReader EvalState
                              , MonadError Error
                              )
 
@@ -25,25 +25,21 @@ eval e s = let initState = EvalState s $ getExprLocation e
             in runEvalContext (evalExpr e) initState
 
 runEvalContext :: EvalContext a -> EvalState -> Either Error a
-runEvalContext ec es = runExcept $ evalStateT (unEvalContext ec) es
+runEvalContext ec es = runExcept $ runReaderT (unEvalContext ec) es
 
 ln :: [a] -> Integer
 ln xs = fromIntegral $ length xs
 
-putStore :: Store -> EvalContext ()
-putStore s = do
-    (EvalState _ l) <- get
-    put $ EvalState s l
-
 getLocation :: EvalContext Location
 getLocation = do
-    (EvalState _ l) <- get
+    (EvalState _ l) <- ask
     return l
 
-getStore :: EvalContext Store
-getStore = do
-    (EvalState s _) <- get
-    return s
+withLocation :: Location -> EvalContext a -> EvalContext a
+withLocation l = local (\(EvalState s ol) -> EvalState s l)
+
+withStore :: Store -> EvalContext a -> EvalContext a
+withStore s = local (\(EvalState os l) -> EvalState s l)
 
 evalExpr :: Expr -> EvalContext FlexNum
 evalExpr (LitFloat _ f) = return $ FlexFloat f
@@ -54,28 +50,26 @@ evalExpr (OperMul _ el er) = (*)  <$> evalExpr el <*> evalExpr er
 evalExpr (OperDiv _ el er) = (/)  <$> evalExpr el <*> evalExpr er
 evalExpr (OperAdd _ el er) = (+)  <$> evalExpr el <*> evalExpr er
 evalExpr (OperSub _ el er) = (-)  <$> evalExpr el <*> evalExpr er
-evalExpr (FnCall l name exps) = do
-    (EvalState os ol) <- get
-    put $ EvalState os l
-    fnDef <- lookupFn name
-    callFnDef fnDef exps <* put (EvalState os ol)
+evalExpr (FnCall l name exps) =
+    let action = lookupFn name >>= \fd -> callFnDef fd exps
+     in withLocation l action
 
 lookupFn :: Name -> EvalContext FnDef
 lookupFn n = do
-    (EvalState s l) <- get
+    (EvalState s l) <- ask
     case M.lookup n s of
         Nothing -> throwError $ FunctionNotFoundError l n
         Just fr -> return fr
 
 callFnDef :: FnDef -> [Expr] -> EvalContext FlexNum
 callFnDef (FnReal name ps fr) exps = do
-    (EvalState s l) <- get
+    (EvalState s l) <- ask
     fnums <- mapM evalExpr exps
     case callFnRef fr fnums of
         Left (ex, ac) -> throwError $ ArityMismatchError l name ex ac
         Right flexnum -> return flexnum
 callFnDef (FnExpr name ps expr) exps = do
-    (EvalState s l) <- get
+    (EvalState s l) <- ask
     let lenPs   = ln ps
         lenExps = ln exps
     case lenPs == lenExps of
@@ -83,7 +77,7 @@ callFnDef (FnExpr name ps expr) exps = do
         True  -> let nfn n e = (n, FnExpr n [] e)
                      zps = zipWith nfn ps exps
                      ns  = M.union (M.fromList zps) s
-                  in putStore ns >> evalExpr expr
+                  in withStore ns $ evalExpr expr
 
 callFnRef :: FnRef -> [FlexNum] -> Either (Integer, Integer) FlexNum
 callFnRef (FnNullary fn) [] = Right fn
