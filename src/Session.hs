@@ -1,4 +1,4 @@
-module Main where
+module Session (runSession, sessionREPL) where
 
 import AST
 import Control.Monad (forever)
@@ -102,7 +102,3 @@ runSession s = HL.runInputT termSettings $ evalStateT (unSession s) mkDefaultRun
 --         "list" -> showHistory
 --         ""     -> return ()
 --         e      -> processExpressionLine t
-
-main :: IO ()
-main = do
-    runSession sessionREPL

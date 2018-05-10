@@ -10,23 +10,47 @@ maintainer:          example@example.com
 copyright:           2018 Author name here
 category:            Web
 build-type:          Simple
-cabal-version:       >=1.24
+cabal-version:       >=2.0
 extra-source-files:  README.md
 
+library
+    hs-source-dirs:      src
+    default-language:    Haskell2010
+    ghc-options:         -fwarn-unused-imports
+    default-extensions:  GeneralizedNewtypeDeriving, OverloadedStrings
+    exposed-modules:     Alias, AST, Error, Eval, FlexNum, FnPredef, Parse, Runtime, Session, Validation
+    build-depends:       base >= 4.7 && < 5
+                       , mtl == 2.2.2
+                       , megaparsec == 6.4.1
+                       , text == 1.2.3.0
+                       , parser-combinators == 0.4.0
+                       , haskeline == 0.7.4.2
+                       , transformers == 0.5.2.0
+                       , Shellac == 0.9.9
+                       , extra == 1.6.5
+                       , containers == 0.5.10.2
+                       , scientific == 0.3.6.0
+
 executable hcalc
-  hs-source-dirs:      src
-  main-is:             Main.hs
-  default-language:    Haskell2010
-  ghc-options:         -fwarn-unused-imports
-  default-extensions:  GeneralizedNewtypeDeriving, OverloadedStrings
-  other-modules:       Alias, AST, Error, Eval, FlexNum, FnPredef, Parse, Runtime, Validation
-  build-depends:       base >= 4.7 && < 5
-                     , mtl == 2.2.2
-                     , megaparsec == 6.4.1
-                     , text == 1.2.3.0
-                     , parser-combinators == 0.4.0
-                     , haskeline == 0.7.4.2
-                     , transformers == 0.5.2.0
-                     , Shellac == 0.9.9
-                     , extra == 1.6.5
-                     , containers == 0.5.10.2
+    hs-source-dirs:      exec
+    main-is:             Main.hs
+    default-language:    Haskell2010
+    ghc-options:         -fwarn-unused-imports
+    default-extensions:  GeneralizedNewtypeDeriving, OverloadedStrings
+    build-depends:       base >= 4.7 && < 5
+                       , hcalc
+
+test-suite hcalc-test
+    type:                exitcode-stdio-1.0
+    hs-source-dirs:      test
+    main-is:             TestMain.hs
+    default-language:    Haskell2010
+    ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+    default-extensions:  GeneralizedNewtypeDeriving, OverloadedStrings
+    other-modules:       TestProps
+    build-depends:       base >= 4.7 && < 5
+                       , hedgehog == 0.5.3
+                       , tasty == 1.0.1.1
+                       , tasty-hedgehog == 0.2.0.0
+                       , tasty-discover == 4.2.0
+                       , hcalc
