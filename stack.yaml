@@ -42,8 +42,8 @@ packages:
 extra-deps:
     - Shellac-0.9.9
     - extra-1.6.5
-    - scientific-0.3.6.0
     - tasty-hedgehog-0.2.0.0
+    - numbers-3000.2.0.2
 
 # Override default flag values for local packages and extra-deps
 # flags: {}

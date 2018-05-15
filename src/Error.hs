@@ -11,7 +11,7 @@ data Error = ArityMismatchError    Location Name ExpParamCount ActParamCount
            | FunctionNotFoundError Location Name
            | Error Message
            | ParseError Location Message
-           deriving (Show)
+           deriving (Eq, Show)
 
 mkErrorMsg :: Error -> String
 mkErrorMsg (ArityMismatchError _ n ex ac) =
