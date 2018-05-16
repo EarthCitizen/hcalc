@@ -10,10 +10,6 @@ import TestGen
 emptyS = M.empty :: M.Map Name FnDef
 testCount = 1000000 :: TestLimit
 
-hprop_equals1 :: Property
-hprop_equals1 = property $ do
-    1 === 1
-
 hprop_evalAddsIntegers :: Property
 hprop_evalAddsIntegers =
     withTests testCount $ property $ do
@@ -24,4 +20,16 @@ hprop_evalSubtractsIntegers :: Property
 hprop_evalSubtractsIntegers =
     withTests testCount $ property $ do
         (expected, expr) <- forAll genAddInteger
+        E.eval expr emptyS === Right expected
+
+hprop_evalMultipliesIntegers :: Property
+hprop_evalMultipliesIntegers =
+    withTests testCount $ property $ do
+        (expected, expr) <- forAll genMulInteger
+        E.eval expr emptyS === Right expected
+
+hprop_evalDividesIntegers :: Property
+hprop_evalDividesIntegers =
+    withTests testCount $ property $ do
+        (expected, expr) <- forAll genDivIntegerEvenly
         E.eval expr emptyS === Right expected
