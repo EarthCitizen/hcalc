@@ -42,6 +42,7 @@ packages:
 extra-deps:
     - Shellac-0.9.9
     - extra-1.6.5
+    - hedgehog-0.6
     - tasty-hedgehog-0.2.0.0
     - numbers-3000.2.0.2
     - scientific-0.3.6.2
