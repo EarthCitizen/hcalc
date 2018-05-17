@@ -50,7 +50,7 @@ test-suite hcalc-test
     other-modules:       TestGen, TestData, TestProps
     build-depends:       base
                        , containers
-                       , hedgehog == 0.5.3
+                       , hedgehog == 0.6
                        , ieee754 == 0.8.0
                        , scientific == 0.3.6.2
                        , tasty == 1.0.1.1

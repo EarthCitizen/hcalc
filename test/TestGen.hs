@@ -1,6 +1,14 @@
 {-# LANGUAGE BangPatterns #-}
 
-module TestGen (genAddInteger, genAddFloat, genSubInteger, genSubFloat, genMulInteger, genDivIntegerEvenly)  where
+module TestGen ( genAddInteger
+               , genAddFloat
+               , genFloat
+               , genInteger
+               , genSubInteger
+               , genSubFloat
+               , genMulInteger
+               , genDivIntegerEvenly
+               ) where
 
 import Alias
 import AST
