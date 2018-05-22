@@ -90,3 +90,14 @@ instance Floating FlexNum where
     asinh = mapAsFloatUnary asinh
     acosh = mapAsFloatUnary acosh
     atanh = mapAsFloatUnary atanh
+
+instance Real FlexNum where
+    toRational (FlexFloat f) = toRational f
+    toRational (FlexInt i)   = toRational i
+
+instance RealFrac FlexNum where
+    properFraction (FlexFloat f) =
+        let (i, f') = properFraction f
+         in (i, FlexFloat f')
+    properFraction (FlexInt i) =
+        (fromInteger i, FlexInt 0)

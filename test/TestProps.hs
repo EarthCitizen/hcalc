@@ -75,6 +75,30 @@ hprop_evalMultipliesFloatAndInteger =
             actual   = TestFlexNum <$> E.eval expr emptyS
         actual === expected
 
+hprop_evalDividesFloatByInteger :: Property
+hprop_evalDividesFloatByInteger =
+    withTests testCount $ property $ do
+        (f, i) <- forAll $ do
+            f'  <- genFloat
+            i'  <- genInteger
+            return (f', i')
+        let expected = Right $ TestFlexNum $ FlexFloat (f / fromIntegral i)
+            expr     = OperDiv emptyL (LitFloat emptyL f) (LitInt emptyL i)
+            actual   = TestFlexNum <$> E.eval expr emptyS
+        actual === expected
+
+hprop_evalDividesIntegerByFloat :: Property
+hprop_evalDividesIntegerByFloat =
+    withTests testCount $ property $ do
+        (f, i) <- forAll $ do
+            f'  <- genFloat
+            i'  <- genInteger
+            return (f', i')
+        let expected = Right $ TestFlexNum $ FlexFloat (fromIntegral i / f)
+            expr     = OperDiv emptyL (LitInt emptyL i) (LitFloat emptyL f)
+            actual   = TestFlexNum <$> E.eval expr emptyS
+        actual === expected
+
 hprop_evalAddsFloats :: Property
 hprop_evalAddsFloats =
     withTests testCount $ property $ do
@@ -117,9 +141,10 @@ hprop_evalDividesFloats =
             lo' <- genFloat
             ro' <- genFloat
             return (lo', ro')
-        let expected = Right $ FlexFloat (lo / ro)
+        let expected = Right $ TestFlexNum $ FlexFloat (lo / ro)
             expr     = OperDiv emptyL (LitFloat emptyL lo) (LitFloat emptyL ro)
-        E.eval expr emptyS === expected
+            actual   = TestFlexNum <$> E.eval expr emptyS
+        actual === expected
 
 hprop_evalRaisesFloats :: Property
 hprop_evalRaisesFloats =
@@ -167,24 +192,57 @@ hprop_evalMultipliesIntegers =
         E.eval expr emptyS === expected
 
 
-hprop_evalDividesIntegersByNonZeroEvenly :: Property
-hprop_evalDividesIntegersByNonZeroEvenly =
+hprop_evalDividesIntegersByNonZeroCreatingInteger :: Property
+hprop_evalDividesIntegersByNonZeroCreatingInteger =
     withTests testCount $ property $ do
         (q, d) <- forAll $ do
             q' <- genInteger
-            d' <- Gen.filter (/=0) genInteger
+            d' <- genIntegerWhere (/=0)
             return (q', d')
         let expected = Right $ FlexInt q
             dividend = q * d
             expr     = OperDiv emptyL (LitInt emptyL dividend) (LitInt emptyL d)
         E.eval expr emptyS === expected
 
+hprop_evalDividesIntegersByNonZeroCreatingFloat :: Property
+hprop_evalDividesIntegersByNonZeroCreatingFloat =
+    withTests testCount $ property $ do
+        let cond = (\(dividend, d) -> rem dividend d /= 0)
+        (dividend, d) <- forAll $ Gen.filter cond getTwoIntegers
+        let expected = Right $ FlexFloat (fromIntegral dividend / fromIntegral d)
+            expr     = OperDiv emptyL (LitInt emptyL dividend) (LitInt emptyL d)
+        E.eval expr emptyS === expected
+    where getTwoIntegers :: Gen (Integer, Integer)
+          getTwoIntegers = do
+              i1 <- genInteger
+              i2 <- genIntegerWhere (/=0)
+              return (i1, i2)
+
+hprop_evalDividesIntegersCreatingNaN :: Property
+hprop_evalDividesIntegersCreatingNaN =
+    withTests 1 $ property $ do
+        let expr = OperDiv emptyL (LitInt emptyL 0) (LitInt emptyL 0)
+        actual <- evalEither $ E.eval expr emptyS
+        let check (FlexFloat f) = isNaN f
+            check (FlexInt i)   = False
+        assert $ check actual
+
+hprop_evalDividesIntegersCreatingInfinity :: Property
+hprop_evalDividesIntegersCreatingInfinity =
+    withTests testCount $ property $ do
+        dividend <- forAll $ genIntegerWhere (/=0)
+        let expr = OperDiv emptyL (LitInt emptyL dividend) (LitInt emptyL 0)
+        actual <- evalEither $ E.eval expr emptyS
+        let check (FlexFloat f) = isInfinite f
+            check (FlexInt i)   = False
+        assert $ check actual
+
 hprop_evalRaisesIntegersByNonNegativeBase :: Property
 hprop_evalRaisesIntegersByNonNegativeBase =
     withTests testCount $ property $ do
         (b, n) <- forAll $ do
             b' <- genInteger
-            n' <- Gen.integral $ Range.constant 1 50
+            n' <- genIntegerBetween 1 50
             return (b', n')
         let expected = Right $ FlexInt (b ^ n)
             expr     = OperExp emptyL (LitInt emptyL b) (LitInt emptyL n)
@@ -195,8 +253,9 @@ hprop_evalRaisesIntegersByNegativeBase =
     withTests testCount $ property $ do
         (b, n) <- forAll $ do
             b' <- genInteger
-            n' <- Gen.integral $ Range.constant (-1) (-50)
+            n' <- genIntegerBetween (-1) (-50)
             return (b', n')
-        let expected = Right $ FlexFloat (fromIntegral b **  fromIntegral n)
+        let expected = Right $ TestFlexNum $ FlexFloat (fromIntegral b **  fromIntegral n)
             expr     = OperExp emptyL (LitInt emptyL b) (LitInt emptyL n)
-        E.eval expr emptyS === expected
+            actual   = TestFlexNum <$> E.eval expr emptyS
+        actual === expected

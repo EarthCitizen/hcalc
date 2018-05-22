@@ -2,12 +2,18 @@
 
 module TestGen ( genAddInteger
                , genAddFloat
+               -- , genExpr
+               , genFlexNum
                , genFloat
+               , genFnName
                , genInteger
+               , genIntegerBetween
+               , genIntegerWhere
                , genSubInteger
                , genSubFloat
                , genMulInteger
                , genDivIntegerEvenly
+               , genN
                ) where
 
 import Alias
@@ -36,10 +42,22 @@ factorsOf z = let p = filter (isRemZero z) likelyFactors
                  in filter (isRemZero z) r
 
 genInteger :: Gen Integer
-genInteger = Gen.integral $ Range.constant (-50000000) 50000000
+genInteger = genIntegerBetween (-50000000) 50000000
+
+genIntegerBetween :: Integer -> Integer -> Gen Integer
+genIntegerBetween x y = Gen.integral $ Range.constant x y
+
+genIntegerWhere :: (Integer -> Bool) -> Gen Integer
+genIntegerWhere f = Gen.filter f genInteger
 
 genFloat :: Gen Double
-genFloat = Gen.realFloat $ Range.constant (-50000000) 50000000
+genFloat = genFloatBetween (-50000000) 50000000
+
+genFloatBetween :: Double -> Double -> Gen Double
+genFloatBetween x y = Gen.realFloat $ Range.constant x y
+
+genFloatWhere :: (Double -> Bool) -> Gen Double
+genFloatWhere f = Gen.filter f genFloat
 
 genAddInteger :: Gen (FlexNum, Expr)
 genAddInteger = do
@@ -91,5 +109,62 @@ genDivIntegerEvenly = do
     let lo = res * ro
     return (FlexInt res, OperDiv emptyL (LitInt emptyL lo) (LitInt emptyL ro))
 
-genX :: Int -> Gen a -> Gen [a]
-genX s g = forM [1..s] (\_ -> g)
+genN :: Int -> Gen a -> Gen [a]
+genN s g = forM [1..s] (\_ -> g)
+
+genFnName :: Gen String
+genFnName = do
+    c1 <- Gen.alpha
+    cx <- Gen.list (Range.constant 0 50) Gen.alphaNum
+    return (c1:cx)
+
+genFlexNum :: Gen FlexNum
+genFlexNum = Gen.choice [genFlexInt, genFlexInt]
+
+genFlexFloat :: Gen FlexNum
+genFlexFloat = FlexFloat <$> genFloat
+
+genFlexInt :: Gen FlexNum
+genFlexInt = FlexInt <$> genInteger
+
+type Depth = Size
+
+genExprFor :: FlexNum -> Depth -> Gen Expr
+genExprFor fn depth | depth < 0 = genExprLitFor fn
+                    | otherwise = Gen.sized go
+    where nextDepth = depth + 1
+          go :: Size -> Gen Expr
+          go sz = if depth >= sz
+                  then genExprLitFor fn
+                  else Gen.choice [ genExprLitFor fn
+                                  , genExprAddFor fn nextDepth
+                                  ]
+
+genExprLitFor :: FlexNum -> Gen Expr
+genExprLitFor (FlexFloat f) = return (LitFloat emptyL f)
+genExprLitFor (FlexInt i)   = return (LitInt emptyL i)
+
+genExprAddFor :: FlexNum -> Depth -> Gen Expr
+genExprAddFor (FlexFloat f) depth = do
+    lof  <- genFloat
+    let los  = fromFloatDigits lof
+        ress = fromFloatDigits f
+        ros  = ress - los
+        rof  = toRealFloat ros
+    le <- Gen.choice [ return (LitFloat emptyL lof)
+                     , genExprFor (FlexFloat lof) depth
+                     ]
+    re <- Gen.choice [ return (LitFloat emptyL rof)
+                     , genExprFor (FlexFloat rof) depth
+                     ]
+    return (OperAdd emptyL le re)
+genExprAddFor (FlexInt i) depth = do
+    lo  <- genInteger
+    let ro = i - lo
+    le <- Gen.choice [ return (LitInt emptyL lo)
+                     , genExprFor (FlexInt lo) depth
+                     ]
+    re <- Gen.choice [ return (LitInt emptyL ro)
+                     , genExprFor (FlexInt ro) depth
+                     ]
+    return (OperAdd emptyL le re)
