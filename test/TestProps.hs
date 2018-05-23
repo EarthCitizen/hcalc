@@ -13,7 +13,7 @@ import Data.AEq ((~==))
 
 emptyL = ("", 0, 0)
 emptyS = M.empty :: M.Map Name FnDef
-testCount = 2000000 :: TestLimit
+testCount = 200000 :: TestLimit
 
 newtype TestFlexNum = TestFlexNum { unTestFlexNum :: FlexNum }
 
@@ -259,3 +259,12 @@ hprop_evalRaisesIntegersByNegativeBase =
             expr     = OperExp emptyL (LitInt emptyL b) (LitInt emptyL n)
             actual   = TestFlexNum <$> E.eval expr emptyS
         actual === expected
+
+hprop_evalExpressions :: Property
+hprop_evalExpressions =
+    withTests testCount $ property $ do
+        (fn, expr) <- forAll $ Gen.resize 3 $ genFlexNumExpr
+        let expected = Right $ TestFlexNum $ fn
+            actual = TestFlexNum <$> E.eval expr emptyS
+        actual === expected
+

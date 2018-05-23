@@ -2,8 +2,8 @@
 
 module TestGen ( genAddInteger
                , genAddFloat
-               -- , genExpr
                , genFlexNum
+               , genFlexNumExpr
                , genFloat
                , genFnName
                , genInteger
@@ -51,7 +51,7 @@ genIntegerWhere :: (Integer -> Bool) -> Gen Integer
 genIntegerWhere f = Gen.filter f genInteger
 
 genFloat :: Gen Double
-genFloat = genFloatBetween (-50000000) 50000000
+genFloat = genFloatBetween (-500) 500
 
 genFloatBetween :: Double -> Double -> Gen Double
 genFloatBetween x y = Gen.realFloat $ Range.constant x y
@@ -129,6 +129,21 @@ genFlexInt = FlexInt <$> genInteger
 
 type Depth = Size
 
+genFlexNumExpr :: Gen (FlexNum, Expr)
+genFlexNumExpr = Gen.choice [ genFlexFloatExpr, genFlexIntExpr]
+
+genFlexFloatExpr :: Gen (FlexNum, Expr)
+genFlexFloatExpr = do
+    f <- genFloatWhere (/=0)
+    e <- genExprFor (FlexFloat f) 0
+    return (FlexFloat f, e)
+
+genFlexIntExpr :: Gen (FlexNum, Expr)
+genFlexIntExpr = do
+    i <- genIntegerWhere (/=0)
+    e <- genExprFor (FlexInt i) 0
+    return (FlexInt i, e)
+
 genExprFor :: FlexNum -> Depth -> Gen Expr
 genExprFor fn depth | depth < 0 = genExprLitFor fn
                     | otherwise = Gen.sized go
@@ -136,9 +151,12 @@ genExprFor fn depth | depth < 0 = genExprLitFor fn
           go :: Size -> Gen Expr
           go sz = if depth >= sz
                   then genExprLitFor fn
-                  else Gen.choice [ genExprLitFor fn
-                                  , genExprAddFor fn nextDepth
-                                  ]
+                  else Gen.frequency [ (1, genExprLitFor fn)
+                                     , (9, genExprAddFor fn nextDepth)
+                                     , (9, genExprSubFor fn nextDepth)
+                                     , (9, genExprMulFor fn nextDepth)
+                                     , (9, genExprDivFor fn nextDepth)
+                                     ]
 
 genExprLitFor :: FlexNum -> Gen Expr
 genExprLitFor (FlexFloat f) = return (LitFloat emptyL f)
@@ -168,3 +186,85 @@ genExprAddFor (FlexInt i) depth = do
                      , genExprFor (FlexInt ro) depth
                      ]
     return (OperAdd emptyL le re)
+
+genExprSubFor :: FlexNum -> Depth -> Gen Expr
+genExprSubFor (FlexFloat f) depth = do
+    rof <- genFloat
+    let ros = fromFloatDigits rof
+        fs  = fromFloatDigits f
+        los = fs + ros
+        lof = toRealFloat los
+    le <- Gen.choice [ return (LitFloat emptyL lof)
+                     , genExprFor (FlexFloat lof) depth
+                     ]
+    re <- Gen.choice [ return (LitFloat emptyL rof)
+                     , genExprFor (FlexFloat rof) depth
+                     ]
+    return (OperSub emptyL le re)
+genExprSubFor (FlexInt i) depth = do
+    ro <- genInteger
+    let lo = i + ro
+    le <- Gen.choice [ return (LitInt emptyL lo)
+                     , genExprFor (FlexInt lo) depth
+                     ]
+    re <- Gen.choice [ return (LitInt emptyL ro)
+                     , genExprFor (FlexInt ro) depth
+                     ]
+    return (OperSub emptyL le re)
+
+genExprMulFor :: FlexNum -> Depth -> Gen Expr
+genExprMulFor (FlexFloat f) depth = do
+    ro  <- genFloatWhere (/=0)
+    let lo = f / ro
+    le <- Gen.choice [ return (LitFloat emptyL lo)
+                     , genExprFor (FlexFloat lo) depth
+                     ]
+    re <- Gen.choice [ return (LitFloat emptyL ro)
+                     , genExprFor (FlexFloat ro) depth
+                     ]
+    return (OperMul emptyL le re)
+genExprMulFor (FlexInt i) depth = do
+    s   <- Gen.element [(-1), 1]
+    rf  <- Gen.element $ factorsOf i
+    let lo = s * rf
+        ro = div i lo
+    le <- Gen.choice [ return (LitInt emptyL lo)
+                     , genExprFor (FlexInt lo) depth
+                     ]
+    re <- Gen.choice [ return (LitInt emptyL ro)
+                     , genExprFor (FlexInt ro) depth
+                     ]
+    return (OperMul emptyL le re)
+
+genExprDivFor :: FlexNum -> Depth -> Gen Expr
+genExprDivFor (FlexFloat f) depth = do
+    ro  <- genFloatWhere (/=0)
+    let lo = f * ro
+    le <- Gen.choice [ return (LitFloat emptyL lo)
+                     , genExprFor (FlexFloat lo) depth
+                     ]
+    re <- Gen.choice [ return (LitFloat emptyL ro)
+                     , genExprFor (FlexFloat ro) depth
+                     ]
+    return (OperDiv emptyL le re)
+genExprDivFor (FlexInt i) depth = do
+    ro  <- genIntegerWhere (/=0)
+    let lo = i * ro
+    le <- Gen.choice [ return (LitInt emptyL lo)
+                     , genExprFor (FlexInt lo) depth
+                     ]
+    re <- Gen.choice [ return (LitInt emptyL ro)
+                     , genExprFor (FlexInt ro) depth
+                     ]
+    return (OperDiv emptyL le re)
+
+exprToString :: Expr -> String
+exprToString (LitFloat _ d) = "(" ++ show d ++ ")"
+exprToString (LitInt   _ i) = "(" ++ show i ++ ")"
+exprToString (Negate   _ e) = "-" ++ exprToString e
+exprToString (OperExp  _ el er) = "(" ++ exprToString el ++ " ^ " ++ exprToString er ++ ")"
+exprToString (OperMul  _ el er) = "(" ++ exprToString el ++ " * " ++ exprToString er ++ ")"
+exprToString (OperDiv  _ el er) = "(" ++ exprToString el ++ " / " ++ exprToString er ++ ")"
+exprToString (OperAdd  _ el er) = "(" ++ exprToString el ++ " + " ++ exprToString er ++ ")"
+exprToString (OperSub  _ el er) = "(" ++ exprToString el ++ " - " ++ exprToString er ++ ")"
+exprToString _ = "(a function call)"
