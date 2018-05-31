@@ -24,7 +24,7 @@ data FnDef = FnReal Name Params FnRef
            | FnExpr Name Params Expr
            deriving (Show)
 
-data Expr = LitFloat Location Double
+data Expr = LitFloat Location Float50
           | LitInt   Location Integer
           | Negate   Location Expr
           | OperExp  Location Expr Expr

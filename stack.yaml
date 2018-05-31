@@ -46,6 +46,8 @@ extra-deps:
     - tasty-hedgehog-0.2.0.0
     - numbers-3000.2.0.2
     - scientific-0.3.6.2
+    - approximate-equality-1.1.0.2
+    - type-level-natural-number-2.0
 
 # Override default flag values for local packages and extra-deps
 # flags: {}

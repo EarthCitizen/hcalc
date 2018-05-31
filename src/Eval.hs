@@ -45,7 +45,7 @@ evalExpr :: Expr -> EvalContext FlexNum
 evalExpr (LitFloat _ f) = return $ FlexFloat f
 evalExpr (LitInt   _ i) = return $ FlexInt i
 evalExpr (Negate _ en)  = negate <$> evalExpr en
-evalExpr (OperExp _ el er) = (^:) <$> evalExpr el <*> evalExpr er
+evalExpr (OperExp _ el er) = (**) <$> evalExpr el <*> evalExpr er
 evalExpr (OperMul _ el er) = (*)  <$> evalExpr el <*> evalExpr er
 evalExpr (OperDiv _ el er) = (/)  <$> evalExpr el <*> evalExpr er
 evalExpr (OperAdd _ el er) = (+)  <$> evalExpr el <*> evalExpr er
