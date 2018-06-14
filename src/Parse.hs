@@ -62,10 +62,10 @@ nested :: ParserContext Expr
 nested = M.between (symbol "(") (symbol ")") expression
 
 float :: ParserContext Expr
-float = LitFloat <$> location <*> MCL.float
+float = LitNum <$> location <*> MCL.float
 
 integer :: ParserContext Expr
-integer = LitInt <$> location <*> MCL.decimal
+integer = LitNum <$> location <*> (fromIntegral <$> MCL.decimal)
 
 identifier :: ParserContext String
 identifier = (:) <$> MC.letterChar <*> M.many MC.alphaNumChar

@@ -5,7 +5,6 @@ import AST
 import Control.Monad.Except
 import Control.Monad.Reader
 import Error
-import FlexNum
 import qualified Data.Map.Strict as M
 
 type Store = M.Map Name FnDef
@@ -20,7 +19,7 @@ newtype EvalContext a = EvalContext { unEvalContext :: ReaderT EvalState (Except
                              , MonadError Error
                              )
 
-eval :: Expr -> Store -> Either Error FlexNum
+eval :: Expr -> Store -> Either Error Float50
 eval e s = let initState = EvalState s $ getExprLocation e
             in runEvalContext (evalExpr e) initState
 
@@ -41,9 +40,8 @@ withLocation l = local (\(EvalState s ol) -> EvalState s l)
 withStore :: Store -> EvalContext a -> EvalContext a
 withStore s = local (\(EvalState os l) -> EvalState s l)
 
-evalExpr :: Expr -> EvalContext FlexNum
-evalExpr (LitFloat _ f) = return $ FlexFloat f
-evalExpr (LitInt   _ i) = return $ FlexInt i
+evalExpr :: Expr -> EvalContext Float50
+evalExpr (LitNum _ f) = return f
 evalExpr (Negate _ en)  = negate <$> evalExpr en
 evalExpr (OperExp _ el er) = (**) <$> evalExpr el <*> evalExpr er
 evalExpr (OperMul _ el er) = (*)  <$> evalExpr el <*> evalExpr er
@@ -61,7 +59,7 @@ lookupFn n = do
         Nothing -> throwError $ FunctionNotFoundError l n
         Just fr -> return fr
 
-callFnDef :: FnDef -> [Expr] -> EvalContext FlexNum
+callFnDef :: FnDef -> [Expr] -> EvalContext Float50
 callFnDef (FnReal name ps fr) exps = do
     (EvalState s l) <- ask
     fnums <- mapM evalExpr exps
@@ -79,7 +77,7 @@ callFnDef (FnExpr name ps expr) exps = do
                      ns  = M.union (M.fromList zps) s
                   in withStore ns $ evalExpr expr
 
-callFnRef :: FnRef -> [FlexNum] -> Either (Integer, Integer) FlexNum
+callFnRef :: FnRef -> [Float50] -> Either (Integer, Integer) Float50
 callFnRef (FnNullary fn) [] = Right fn
 callFnRef (FnUnary   fn) [p1] = Right $ fn p1
 callFnRef (FnBinary  fn) [p1, p2] = Right $ fn p1 p2
