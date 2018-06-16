@@ -1,12 +1,10 @@
 {-# LANGUAGE BangPatterns #-}
 
-module TestGen ( genAddFloat
-               , genExpr
+module TestGen ( genExpr
                , genFloat
                , genFloatBetween
                , genFloatWhere
                , genFnName
-               , genSubFloat
                , genN
                ) where
 
@@ -39,75 +37,30 @@ gtltZero = (\x -> x > 0 || x < 0)
 --
 -- genIntegerBetween :: Integer -> Integer -> Gen Integer
 -- genIntegerBetween x y = Gen.integral $ Range.constant x y
---
+
 -- genIntegerWhere :: (Integer -> Bool) -> Gen Integer
 -- genIntegerWhere f = Gen.filter f genInteger
 
+genWhole :: Gen (Float50 -> Float50)
+genWhole = Gen.choice [ return $ \x -> fromIntegral $ truncate x
+                       , return id
+                       ]
+
 genFloat :: Gen Float50
-genFloat = Gen.choice [ genFloatBetween (-5) 5
-                      , genFloatBetween (-3000000) (-100)
-                      , genFloatBetween 3000000 100
-                      , genFloatBetween (-300) (-900)
-                      , genFloatBetween 300 900
+genFloat = Gen.choice [ genWhole <*> genFloatBetween (-5) 5
+                      , genWhole <*> genFloatBetween (-3000000) (-100)
+                      , genWhole <*> genFloatBetween 3000000 100
+                      , genWhole <*> genFloatBetween (-300) (-900)
+                      , genWhole <*> genFloatBetween 300 900
                       , genFloatBetween (-0.005) 0.005
                       , genFloatBetween (-0.000005) 0.000005
                       ]
 
 genFloatBetween :: Float50 -> Float50 -> Gen Float50
-genFloatBetween x y = Gen.realFrac_ $ Range.constant x y
+genFloatBetween x y = genWhole <*> (Gen.realFrac_ $ Range.constant x y)
 
 genFloatWhere :: (Float50 -> Bool) -> Gen Float50
 genFloatWhere f = Gen.filter f genFloat
-
--- genAddInteger :: Gen (Float50, Expr)
--- genAddInteger = do
---     res <- genInteger
---     lo  <- genInteger
---     let ro = res - lo
---     return (FlexInt res, OperAdd emptyL (LitInt emptyL lo) (LitInt emptyL ro))
-
-genAddFloat :: Gen (Float50, Expr)
-genAddFloat = do
-    resf <- genFloat
-    lof  <- genFloat
-    let los  = fromFloatDigits lof
-        ress = fromFloatDigits resf
-        ros  = ress - los
-        rof  = toRealFloat ros
-    return (resf, OperAdd emptyL (LitNum emptyL lof) (LitNum emptyL rof))
-
--- genSubInteger :: Gen (Float50, Expr)
--- genSubInteger = do
---     res <- genInteger
---     ro  <- genInteger
---     let lo = res + ro
---     return (FlexInt res, OperSub emptyL (LitInt emptyL lo) (LitInt emptyL ro))
-
-genSubFloat :: Gen (Float50, Expr)
-genSubFloat = do
-    resf <- genFloat
-    rof  <- genFloat
-    let ros  = fromFloatDigits rof
-        ress = fromFloatDigits resf
-        los  = ress + ros
-        lof  = toRealFloat los
-    return (resf, OperSub emptyL (LitNum emptyL lof) (LitNum emptyL rof))
-
--- genMulInteger :: Gen (Float50, Expr)
--- genMulInteger = do
---     res <- genInteger
---     s   <- Gen.element [(-1), 1]
---     rf  <- Gen.element $ factorsOf res
---     let lo = s * rf
---         ro = div res lo
---     return (FlexInt res, OperMul emptyL (LitInt emptyL lo) (LitInt emptyL ro))
-
--- genDivIntegerEvenly :: Gen (Float50, Expr)
--- genDivIntegerEvenly = do
---     res <- genInteger
---     ro  <- genInteger
---     let lo = res * ro
---     return (FlexInt res, OperDiv emptyL (LitInt emptyL lo) (LitInt emptyL ro))
 
 genN :: Int -> Gen a -> Gen [a]
 genN s g = forM [1..s] (\_ -> g)

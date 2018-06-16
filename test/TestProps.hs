@@ -15,7 +15,7 @@ import TestGen
 
 emptyL = ("", 0, 0)
 emptyS = M.empty :: M.Map Name FnDef
-testCount = 300 :: TestLimit
+testCount = 30000 :: TestLimit
 exprSplitSize = 7 :: Size
 
 newtype ApproxFloat = ApproxFloat { unApprox :: Float50 }
@@ -96,10 +96,10 @@ hprop_evalDivides =
 
 hprop_evalRaises :: Property
 hprop_evalRaises =
-    withTests testCount $ property $ do
-        (lo, ro) <- forAll $ do
-            lo' <- Gen.choice [ genFloatBetween (-10) 10 ]
-            ro' <- Gen.choice [return 3.3] -- [ genFloatBetween (-10) 10 ]
+    withTests 3000 $ property $ do
+        aa@(lo, ro) <- forAll $ do
+            lo' <- genFloat
+            ro' <- genFloatBetween (-10) 10
             return (lo', ro')
         let expected = Right (lo ** ro)
             expr     = OperExp emptyL (LitNum emptyL lo) (LitNum emptyL ro)
@@ -108,11 +108,7 @@ hprop_evalRaises =
 
 hprop_evalExpressions :: Property
 hprop_evalExpressions =
-    -- Shrinks seem to go into an infinite loop sometimes
-    -- with BigFloat unless the shrinks are set. The shrinks
-    -- above 0 don't seem to have any benefit as the same
-    -- values resurface often for the repeats.
-    {- withShrinks 0 $ -} withTests testCount $ property $ do
+    withTests testCount $ property $ do
         (fn, expr) <- forAll $ Gen.resize exprSplitSize $ genExpr
         let expected = Right $ fn
             actual = E.eval expr emptyS
