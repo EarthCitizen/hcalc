@@ -108,7 +108,8 @@ hprop_evalRaises =
 
 hprop_evalExpressions :: Property
 hprop_evalExpressions =
-    withTests testCount $ property $ do
+    -- Lower count because calculating exp is expensive
+    withTests 3000 $ property $ do
         (fn, expr) <- forAll $ Gen.resize exprSplitSize $ genExpr
         let expected = Right $ fn
             actual = E.eval expr emptyS

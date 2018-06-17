@@ -43,8 +43,8 @@ gtltZero = (\x -> x > 0 || x < 0)
 
 genWhole :: Gen (Float50 -> Float50)
 genWhole = Gen.choice [ return $ \x -> fromIntegral $ truncate x
-                       , return id
-                       ]
+                      , return id
+                      ]
 
 genFloat :: Gen Float50
 genFloat = Gen.choice [ genWhole <*> genFloatBetween (-5) 5
@@ -87,6 +87,7 @@ genExprFor fn depth | depth < 0 = genExprLitFor fn
           go sz = if depth >= sz
                   then genExprLitFor fn
                   else Gen.frequency [ (1, genExprLitFor fn)
+                                     , (2, genExprExpFor fn nextDepth)
                                      , (9, genExprAddFor fn nextDepth)
                                      , (9, genExprSubFor fn nextDepth)
                                      , (9, genExprMulFor fn nextDepth)
@@ -149,6 +150,22 @@ genExprDivFor f depth = do
                      , genExprFor ro depth
                      ]
     return (OperDiv emptyL le re)
+
+genExprExpFor :: Float50 -> Depth -> Gen Expr
+genExprExpFor f depth
+    | f <= 0 = return $ LitNum emptyL f
+    | otherwise = do
+        b <- genFloatBetween 1.1 10000
+        let e = log f / log b
+        bo <- Gen.choice [ return $ (LitNum emptyL b)
+                         , genExprFor b depth
+                         ]
+        eo <- Gen.choice [ return (LitNum emptyL e)
+                         , genExprFor e depth
+                         ]
+        return (OperExp emptyL bo eo)
+
+
 
 exprToString :: Expr -> String
 exprToString (LitNum  _ d) = "(" ++ show d ++ ")"
