@@ -97,7 +97,7 @@ hprop_evalDivides =
 hprop_evalRaises :: Property
 hprop_evalRaises =
     withTests 3000 $ property $ do
-        aa@(lo, ro) <- forAll $ do
+        (lo, ro) <- forAll $ do
             lo' <- genFloat
             ro' <- genFloatBetween (-10) 10
             return (lo', ro')
@@ -106,23 +106,66 @@ hprop_evalRaises =
             actual   = E.eval expr emptyS
         actual ~=== expected
 
+hprop_evalExecutesNullaryFunctions :: Property
+hprop_evalExecutesNullaryFunctions =
+    withTests testCount $ property $ do
+        (fn, fd, v) <- forAll $ do
+            fnName <- genFnName
+            num    <- genFloat
+            let expr = LitNum emptyL num
+            return (fnName, FnExpr fnName [] expr, num)
+        let expected = Right (v)
+            store    = M.fromList [(fn,fd)]
+            expr     = FnCall emptyL fn []
+            actual   = E.eval expr store
+        actual ~=== expected
+
+hprop_evalExecutesBinaryFunctions :: Property
+hprop_evalExecutesBinaryFunctions =
+    withTests testCount $ property $ do
+        (fn, fd, plist, ve) <- forAll $ do
+            fnName <- genFnName
+            numl   <- genFloat
+            numr   <- genFloat
+            let fl   = FnCall emptyL "a" []
+                fr   = FnCall emptyL "b" []
+                expr = OperSub emptyL fl fr
+                pl   = LitNum emptyL numl
+                pr   = LitNum emptyL numr
+            return (fnName, FnExpr fnName ["a", "b"] expr, [pl, pr], numl - numr)
+        let expected = Right (ve)
+            store    = M.fromList [(fn,fd)]
+            expr     = FnCall emptyL fn plist
+            actual   = E.eval expr store
+        actual ~=== expected
+
+hprop_evalExecutesTernaryFunctions :: Property
+hprop_evalExecutesTernaryFunctions =
+    withTests testCount $ property $ do
+        (fn, fd, plist, ve) <- forAll $ do
+            fnName <- genFnName
+            numl   <- genFloat
+            numm   <- genFloat
+            numr   <- genFloat
+            let fl   = FnCall emptyL "a" []
+                fm   = FnCall emptyL "b" []
+                fr   = FnCall emptyL "c" []
+                expr = OperSub emptyL (OperSub emptyL fl fm) fr
+                pl   = LitNum emptyL numl
+                pm   = LitNum emptyL numm
+                pr   = LitNum emptyL numr
+            return (fnName, FnExpr fnName ["a", "b", "c"] expr, [pl, pm, pr], (numl - numm) - numr)
+        let expected = Right (ve)
+            store    = M.fromList [(fn,fd)]
+            expr     = FnCall emptyL fn plist
+            actual   = E.eval expr store
+        actual ~=== expected
+
 hprop_evalExpressions :: Property
 hprop_evalExpressions =
     -- Lower count because calculating exp is expensive
     withTests 3000 $ property $ do
-        (fn, expr) <- forAll $ Gen.resize exprSplitSize $ genExpr
-        let expected = Right $ fn
+        (fn, expr) <- forAll  $ Gen.resize exprSplitSize $ genExpr
+        let expected = Right  $ fn
             actual = E.eval expr emptyS
         actual ~=== expected
-
--- hprop_evalExecutesNullaryFunctions :: Property
--- hprop_evalExecutesNullaryFunctions =
---     withTests testCount $ property $ do
---         (fn, fd, v) <- forAll $ do
---             let mkExpr
---             fnName <- genFnName
---             expr   <- Gen.choice [ LitNum <$> genFloat
---                                  , LitInt   <$> genInteger
---                                  ]
---
---             return (fnName, FnExpr fnName [] expr
