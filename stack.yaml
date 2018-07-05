@@ -48,6 +48,7 @@ extra-deps:
     - approximate-equality-1.1.0.2
     - type-level-natural-number-2.0
     - decimal-arithmetic-0.5.0.0
+    - transformers-0.5.5.0
 
 # Override default flag values for local packages and extra-deps
 # flags: {}
