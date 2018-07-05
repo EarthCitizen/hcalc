@@ -6,10 +6,9 @@ import Control.Monad.Except
 import Control.Monad.Reader
 import Error
 import qualified Data.Map.Strict as M
+import Runtime (FnStore)
 
-type Store = M.Map Name FnDef
-
-data EvalState = EvalState Store Location deriving (Show)
+data EvalState = EvalState FnStore Location deriving (Show)
 
 newtype EvalContext a = EvalContext { unEvalContext :: ReaderT EvalState (Except Error) a }
                     deriving ( Functor
@@ -19,7 +18,7 @@ newtype EvalContext a = EvalContext { unEvalContext :: ReaderT EvalState (Except
                              , MonadError Error
                              )
 
-eval :: Expr -> Store -> Either Error Float50
+eval :: Expr -> FnStore -> Either Error Float50
 eval e s = let initState = EvalState s $ getExprLocation e
             in runEvalContext (evalExpr e) initState
 
@@ -37,7 +36,7 @@ getLocation = do
 withLocation :: Location -> EvalContext a -> EvalContext a
 withLocation l = local (\(EvalState s ol) -> EvalState s l)
 
-withStore :: Store -> EvalContext a -> EvalContext a
+withStore :: FnStore -> EvalContext a -> EvalContext a
 withStore s = local (\(EvalState os l) -> EvalState s l)
 
 evalExpr :: Expr -> EvalContext Float50

@@ -44,7 +44,6 @@ extra-deps:
     - extra-1.6.5
     - hedgehog-0.6
     - tasty-hedgehog-0.2.0.0
-    - numbers-3000.2.0.2
     - scientific-0.3.6.2
     - approximate-equality-1.1.0.2
     - type-level-natural-number-2.0

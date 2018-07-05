@@ -25,7 +25,7 @@ library
                        , text == 1.2.3.0
                        , parser-combinators == 0.4.0
                        , haskeline == 0.7.4.2
-                       , transformers == 0.5.2.0
+                       , transformers == 0.5.5.0
                        , Shellac == 0.9.9
                        , extra == 1.6.5
                        , containers == 0.5.10.2
