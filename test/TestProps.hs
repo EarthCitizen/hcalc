@@ -169,3 +169,4 @@ hprop_evalExpressions =
         let expected = Right  $ fn
             actual = E.eval expr emptyS
         actual ~=== expected
+

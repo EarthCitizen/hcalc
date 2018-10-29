@@ -123,7 +123,7 @@ ipeToParseErr e s =
 
 parseStmt :: String -> Either Error Stmt
 parseStmt s = let sp = statement <* M.eof
-                in runParserContext sp s
+               in runParserContext sp s
 
 runParserContext :: ParserContext a -> Source -> Either Error a
 runParserContext pc s =
