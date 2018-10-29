@@ -10,5 +10,6 @@ validateFnDef fd@(FnExpr fn ps ex) = forM_ ps (fNameNotPName fn) >> Right fd
 
 fNameNotPName :: Name -> Name -> Either Error Name
 fNameNotPName fn pn = if pn == fn
-                           then Left $ Error "name reuse"
+                           then Left $ Error "parameter name matches function name"
                            else Right pn
+
