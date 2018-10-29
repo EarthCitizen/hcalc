@@ -24,7 +24,13 @@ termSettings = HL.Settings {
                }
 
 newtype Session a = Session { unSession :: StateT Runtime (HL.InputT IO) a }
-                  deriving (Functor, Applicative, Monad, MonadIO, MonadState Runtime, HL.MonadException)
+                  deriving ( Functor
+                           , Applicative
+                           , Monad
+                           , MonadIO
+                           , MonadState Runtime
+                           , HL.MonadException
+                           )
 
 newSession :: Session ()
 newSession = Session $ return ()
