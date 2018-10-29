@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Runtime (Runtime(getStore), mkDefaultRuntime, mkRuntime, addFunction, addHistory, getFunction) where
+module Runtime (FnStore, emptyFnStore, Runtime(getStore), mkDefaultRuntime, mkRuntime, addFunction, addHistory, getFunction) where
 
 import Alias
 import AST
@@ -10,6 +10,11 @@ import Control.Monad.State.Strict
 data Runtime = Runtime { getHistory :: [String]
                        , getStore   :: M.Map Name FnDef
                        } deriving (Show)
+
+type FnStore = M.Map Name FnDef
+
+emptyFnStore :: FnStore
+emptyFnStore = M.empty
 
 mkRuntime :: Runtime
 mkRuntime = Runtime [] M.empty

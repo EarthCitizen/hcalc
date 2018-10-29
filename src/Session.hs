@@ -1,5 +1,6 @@
 module Session (runSession, sessionREPL) where
 
+import Alias
 import AST
 import Control.Monad (forever)
 import Control.Monad.State.Strict
@@ -7,7 +8,6 @@ import Control.Monad.Trans.Class (lift)
 import Data.List.Extra (trim)
 import Error
 import qualified Eval as E
-import FlexNum
 import Runtime
 import qualified Parse as P
 import System.Exit
@@ -64,9 +64,8 @@ processStmt l  =
 showError :: String -> Error -> Session()
 showError ln err = showLines $ mkDetailedError err
 
-showResult :: FlexNum -> Session ()
-showResult (FlexFloat f) = liftIO $ print f
-showResult (FlexInt i)   = liftIO $ print i
+showResult :: Float50 -> Session ()
+showResult f = liftIO $ print f
 
 showLines :: [String] -> Session ()
 showLines = mapM_ showLine

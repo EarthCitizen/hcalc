@@ -1,10 +1,12 @@
 module Alias where
 
-import Data.Number.BigFloat (BigFloat)
-import Data.Number.Fixed (Prec50, Prec500)
+-- import Data.Number.BigFloat (BigFloat)
+-- import Data.Number.Fixed (Fixed, Prec50, Prec500)
 
-type Float50  = BigFloat Prec50
-type Float500 = BigFloat Prec500
+import Numeric.Decimal (ExtendedDecimal, P50, P500)
+
+type Float50  = ExtendedDecimal P50
+type Float500 = ExtendedDecimal P500
 
 type Arity    = Integer
 type Column   = Integer
