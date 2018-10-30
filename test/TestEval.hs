@@ -1,4 +1,4 @@
-module TestProps where
+module TestEval where
 
 import Debug.Trace (trace, traceM)
 

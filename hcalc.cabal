@@ -47,7 +47,7 @@ test-suite hcalc-test
     default-language:    Haskell2010
     ghc-options:         -O2 -rtsopts -with-rtsopts=-N
     default-extensions:  GeneralizedNewtypeDeriving, OverloadedStrings
-    other-modules:       TestGen, TestData, TestProps
+    other-modules:       TestGen, TestData, TestEval, TestValidation
     build-depends:       base
                        , containers
                        , hedgehog == 0.6
