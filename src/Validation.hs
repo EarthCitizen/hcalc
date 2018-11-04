@@ -7,19 +7,23 @@ import Data.List (elem, intercalate, nub)
 import Error
 
 validateFnDef :: FnDef -> Either Error FnDef
-validateFnDef fd@(FnExpr fn ps ex) = forM_ ps (fNameNotPName fn) >> pNamesNotDup ps >> Right fd
+validateFnDef fd@(FnExpr fn ps ex) = do
+    forM_ ps (fNameNotPName fn)
+    pNamesNotDup ps
+    return fd
 
 fNameNotPName :: Name -> Name -> Either Error Name
 fNameNotPName fn pn = if pn == fn
                       then Left $ Error "parameter name matches function name"
                       else Right pn
 
-
 pNamesNotDup :: [Name] -> Either Error Name
 pNamesNotDup [] = Right []
 pNamesNotDup ps = case go [] ps of
                       [] -> Right []
-                      xs -> Left $ Error $ "duplicate parameters: " ++ intercalate ", " xs
+                      xs -> let pf = "duplicate parameters: "
+                                vs = intercalate ", " xs
+                             in Left $ Error $ pf ++ vs
     where go :: (Eq a) => [a] -> [a] -> [a]
           go [] [] = []
           go cm [] = cm
