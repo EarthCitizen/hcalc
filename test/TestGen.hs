@@ -166,7 +166,6 @@ genExprExpFor f depth
         return (OperExp emptyL bo eo)
 
 
-
 exprToString :: Expr -> String
 exprToString (LitNum  _ d) = "(" ++ show d ++ ")"
 exprToString (Negate  _ e) = "-" ++ exprToString e
@@ -176,3 +175,4 @@ exprToString (OperDiv _ el er) = "(" ++ exprToString el ++ " / " ++ exprToString
 exprToString (OperAdd _ el er) = "(" ++ exprToString el ++ " + " ++ exprToString er ++ ")"
 exprToString (OperSub _ el er) = "(" ++ exprToString el ++ " - " ++ exprToString er ++ ")"
 exprToString _ = "(a function call)"
+

@@ -1,8 +1,10 @@
-module Session (runSession, sessionREPL) where
+module Session (runSession, runREPL) where
 
 import Alias
 import AST
 import Control.Monad (forever)
+import Control.Monad.Except(ExceptT(..), MonadError(..), liftEither, runExceptT)
+import Control.Monad.Extra (eitherM)
 import Control.Monad.State.Strict
 import Control.Monad.Trans.Class (lift)
 import Data.List.Extra (trim)
@@ -23,20 +25,31 @@ termSettings = HL.Settings {
                    HL.autoAddHistory = True
                }
 
-newtype Session a = Session { unSession :: StateT Runtime (HL.InputT IO) a }
+newtype Session a = Session { unSession :: StateT Runtime (ExceptT Error (HL.InputT IO)) a }
                   deriving ( Functor
                            , Applicative
                            , Monad
                            , MonadIO
+                           , MonadError Error
                            , MonadState Runtime
                            , HL.MonadException
                            )
+
+-- Modified version of instance for ErrorT that comes with haskeline
+-- Haskeline currently does not include an instace for ExceptT
+instance (HL.MonadException m) => HL.MonadException (ExceptT e m) where
+    controlIO f = ExceptT $ HL.controlIO $ \(HL.RunIO run) ->
+        let run' = HL.RunIO (fmap ExceptT . run . runExceptT)
+         in fmap runExceptT $ f run'
+
+instance MonadRuntime Session where
+    getFnStore = gets getStore
 
 newSession :: Session ()
 newSession = Session $ return ()
 
 getPrompt :: Session String
-getPrompt = Session $ lift $ p <$> HL.haveTerminalUI
+getPrompt = Session $ lift $ lift $ p <$> HL.haveTerminalUI
     where p True  = "> "
           p False = ""
 
@@ -45,7 +58,7 @@ tryAction f = HL.handle (\HL.Interrupt -> liftIO $ return $ Just "")
             $ HL.withInterrupt f
 
 getSessionLine :: String -> Session (Maybe String)
-getSessionLine prompt = Session $ lift $ tryAction $ HL.getInputLine prompt
+getSessionLine prompt = Session $ lift $ lift $ tryAction $ HL.getInputLine prompt
 
 processSessionLine :: Maybe String -> Session ()
 processSessionLine = maybe exit go
@@ -53,38 +66,37 @@ processSessionLine = maybe exit go
 
 processStmt :: String -> Session ()
 processStmt "" = return ()
-processStmt l  =
-    case P.parseStmt l of
-        Left err   -> showError l err
-        Right (StmtFnDef _ fnDef) ->
-            case validateFnDef fnDef of
-                Left err -> showError l err
-                Right _  -> addFunction fnDef
-        Right (StmtExpr _ expr) -> do
-            rt <- get
-            let ef = E.eval expr $ getStore rt
-            case ef of
-                Left  err    -> showError l err
-                Right result -> showResult result
+processStmt ln =
+    let ev = \x -> do fs <- getFnStore
+                      liftEither $ E.eval x fs
+        pr = liftEither $ P.parseStmt ln
+        ps (StmtFnDef _ fnDef) = addFunction fnDef
+        ps (StmtExpr  _ expr)  = ev expr >>= showResult
+     in pr >>= validate >>= ps
 
-showError :: String -> Error -> Session()
-showError ln err = showLines $ mkDetailedError err
+showError :: (MonadIO m) => Error -> m ()
+showError err = showLines $ mkDetailedError err
 
-showResult :: Float50 -> Session ()
+showResult :: (MonadIO m) => Float50 -> m ()
 showResult f = liftIO $ print f
 
-showLines :: [String] -> Session ()
+showLines :: (MonadIO m) => [String] -> m ()
 showLines = mapM_ showLine
 
-showLine :: String -> Session ()
+showLine :: (MonadIO m) => String -> m ()
 showLine s = liftIO $ putStrLn s
 
-sessionREPL :: Session ()
-sessionREPL = getPrompt >>= \p -> let process = getSessionLine p >>= processSessionLine
-                                   in forever  process
+runREPL :: Session ()
+runREPL = getPrompt >>= \p ->
+    let processLine = getSessionLine p >>= processSessionLine
+     in forever (catchError processLine showError)
 
-runSession :: Session a -> IO a
-runSession s = HL.runInputT termSettings $ evalStateT (unSession s) mkDefaultRuntime
+runSession :: Session a -> IO ()
+runSession s = let es = evalStateT (unSession s) mkDefaultRuntime
+                   ex = runExceptT es
+                   er = showError
+                   ei = eitherM er (\_ -> return ()) ex
+                in HL.runInputT termSettings ei
 
 -- addHistory :: (String, FlexNum) -> Session ()
 -- addHistory ln = do
@@ -107,3 +119,4 @@ runSession s = HL.runInputT termSettings $ evalStateT (unSession s) mkDefaultRun
 --         "list" -> showHistory
 --         ""     -> return ()
 --         e      -> processExpressionLine t
+

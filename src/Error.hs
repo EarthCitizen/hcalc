@@ -35,3 +35,4 @@ mkDetailedError e =
 
 mkPointTo :: Integer -> String
 mkPointTo  c = replicate (fromIntegral c - 1) ' ' <> "^"
+

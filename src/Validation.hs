@@ -1,33 +1,36 @@
-module Validation (validateFnDef) where
+module Validation (validate) where
 
 import Alias
 import AST
 import Control.Monad (forM_)
-import Data.List (elem, intercalate, nub)
+import Control.Monad.Except (MonadError(..))
+import Data.List ((\\), intercalate, nub)
 import Error
 
-validateFnDef :: FnDef -> Either Error FnDef
+validate :: (MonadError Error m) => Stmt -> m Stmt
+validate s@(StmtFnDef _ fnDef) = do
+    validateFnDef fnDef
+    return s
+validate s = return s
+
+validateFnDef :: (MonadError Error m) => FnDef -> m ()
 validateFnDef fd@(FnExpr fn ps ex) = do
     forM_ ps (fNameNotPName fn)
     pNamesNotDup ps
-    return fd
 
-fNameNotPName :: Name -> Name -> Either Error Name
+fNameNotPName :: (MonadError Error m) => Name -> Name -> m ()
 fNameNotPName fn pn = if pn == fn
-                      then Left $ Error "parameter name matches function name"
-                      else Right pn
+                      then throwError $ Error "parameter name matches function name"
+                      else return ()
 
-pNamesNotDup :: [Name] -> Either Error Name
-pNamesNotDup [] = Right []
-pNamesNotDup ps = case go [] ps of
-                      [] -> Right []
+pNamesNotDup :: (MonadError Error m) => [Name] -> m ()
+pNamesNotDup [] = return ()
+pNamesNotDup ps = case findDups ps of
+                      [] -> return ()
                       xs -> let pf = "duplicate parameters: "
                                 vs = intercalate ", " xs
-                             in Left $ Error $ pf ++ vs
-    where go :: (Eq a) => [a] -> [a] -> [a]
-          go [] [] = []
-          go cm [] = cm
-          go cm (x:xs) = if elem x xs
-                         then go (nub $ cm ++ [x]) xs
-                         else go cm xs
+                             in throwError $ Error $ pf ++ vs
+
+findDups :: Eq a => [a] -> [a]
+findDups xs = xs \\ (nub xs)
 

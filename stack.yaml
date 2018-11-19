@@ -41,7 +41,7 @@ packages:
 # (e.g., acme-missiles-0.3)
 extra-deps:
     - Shellac-0.9.9
-    - extra-1.6.5
+    - extra-1.6.13
     - hedgehog-0.6
     - tasty-hedgehog-0.2.0.0
     - scientific-0.3.6.2

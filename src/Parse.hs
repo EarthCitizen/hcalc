@@ -17,14 +17,14 @@ type Parser = M.Parsec Void String
 type InternalParseError = M.ParseError Char Void
 
 newtype ParserContext a = ParserContext { unParserContext :: ReaderT Source Parser a }
-                    deriving ( Functor
-                             , Applicative
-                             , Monad
-                             , Alternative
-                             , MonadPlus
-                             , M.MonadParsec Void String
-                             , MonadReader Source
-                             )
+                        deriving ( Functor
+                                 , Applicative
+                                 , Monad
+                                 , Alternative
+                                 , MonadPlus
+                                 , M.MonadParsec Void String
+                                 , MonadReader Source
+                                 )
 
 binaryl c t = ME.InfixL $ c <$> (location <* symbol t)
 binaryr c t = ME.InfixR $ c <$> (location <* symbol t)
@@ -130,3 +130,4 @@ runParserContext pc s =
     case M.parse (runReaderT (unParserContext pc) s) "" s of
         Left ipe -> Left $ ipeToParseErr ipe s
         Right e  -> Right e
+

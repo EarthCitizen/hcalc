@@ -1,17 +1,31 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Runtime (FnStore, emptyFnStore, Runtime(getStore), mkDefaultRuntime, mkRuntime, addFunction, addHistory, getFunction) where
+module Runtime ( FnStore
+               , emptyFnStore
+               , Runtime(getStore)
+               , mkDefaultRuntime
+               , mkRuntime
+               , addFunction
+               , addHistory
+               , getFunction
+               , isExtFnRO
+               , MonadRuntime (..)
+               ) where
 
 import Alias
 import AST
 import qualified Data.Map.Strict as M
+import Data.Maybe (maybe)
 import Control.Monad.State.Strict
 
-data Runtime = Runtime { getHistory :: [String]
-                       , getStore   :: M.Map Name FnDef
-                       } deriving (Show)
-
 type FnStore = M.Map Name FnDef
+
+class (Monad m) => MonadRuntime m where
+    getFnStore :: m FnStore
+
+data Runtime = Runtime { getHistory :: [String]
+                       , getStore   :: FnStore
+                       } deriving (Show)
 
 emptyFnStore :: FnStore
 emptyFnStore = M.empty
@@ -63,3 +77,13 @@ getFunction name = do
     r <- get
     let s = getStore r
     return $ M.lookup name s
+
+isExtFnRO :: (MonadState Runtime m) => String -> m Bool
+isExtFnRO s = do
+    mfn <- getFunction s
+    return $ maybe False isReadOnlyFn mfn
+
+isReadOnlyFn :: FnDef -> Bool
+isReadOnlyFn (FnReal _ _ _) = True
+isReadOnlyFn _ = False
+
