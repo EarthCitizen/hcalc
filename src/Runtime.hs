@@ -2,33 +2,27 @@
 
 module Runtime ( FnStore
                , emptyFnStore
-               , Runtime(getStore)
+               , Runtime(..)
                , mkDefaultRuntime
                , mkRuntime
-               , addFunction
                , addHistory
-               , getFunction
-               , isExtFnRO
-               , MonadRuntime (..)
+               -- , isExtFnRO
+               , GetFnStore (..)
+               , getFn
+               , hasFn
+               , PutFnStore (..)
+               , putFn
                ) where
 
 import Alias
 import AST
-import qualified Data.Map.Strict as M
-import Data.Maybe (maybe)
+import FnStore
 import Control.Monad.State.Strict
-
-type FnStore = M.Map Name FnDef
-
-class (Monad m) => MonadRuntime m where
-    getFnStore :: m FnStore
+import qualified Data.Map.Strict as M
 
 data Runtime = Runtime { getHistory :: [String]
                        , getStore   :: FnStore
                        } deriving (Show)
-
-emptyFnStore :: FnStore
-emptyFnStore = M.empty
 
 mkRuntime :: Runtime
 mkRuntime = Runtime [] M.empty
@@ -63,25 +57,10 @@ mkDefaultRuntime = let s = M.fromList $ fnDefToTuple <$> preDefFns
 addHistory :: (MonadState Runtime m) => String -> m ()
 addHistory l = modify (\(Runtime h s) -> Runtime (l:h) s)
 
-getFnName :: FnDef -> String
-getFnName (FnReal n _ _) = n
-getFnName (FnExpr n _ _) = n
-
-addFunction :: (MonadState Runtime m) => FnDef -> m ()
-addFunction fd = let name = getFnName fd
-                     ins  = M.insert name fd
-                  in modify $ \(Runtime h s) -> Runtime h $ ins s
-
-getFunction :: (MonadState Runtime m) => String -> m (Maybe FnDef)
-getFunction name = do
-    r <- get
-    let s = getStore r
-    return $ M.lookup name s
-
-isExtFnRO :: (MonadState Runtime m) => String -> m Bool
-isExtFnRO s = do
-    mfn <- getFunction s
-    return $ maybe False isReadOnlyFn mfn
+-- isExtFnRO :: (GetFnStore m) => String -> m Bool
+-- isExtFnRO n = do
+--     fn <- getFn n
+--     return $ maybe False isReadOnlyFn fn
 
 isReadOnlyFn :: FnDef -> Bool
 isReadOnlyFn (FnReal _ _ _) = True

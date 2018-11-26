@@ -1,6 +1,12 @@
 {-# LANGUAGE FlexibleInstances #-}
 
-module AST (FnRef(..), FnDef(..), Expr(..), Stmt(..), getExprLocation) where
+module AST ( FnRef(..)
+           , FnDef(..)
+           , Expr(..)
+           , Stmt(..)
+           , getExprLocation
+           , getFnName
+           ) where
 
 import Alias
 
@@ -46,3 +52,8 @@ getExprLocation (FnCall  l _ _) = l
 data Stmt = StmtFnDef Location FnDef
           | StmtExpr  Location Expr
           deriving (Show)
+
+getFnName :: FnDef -> String
+getFnName (FnReal n _ _) = n
+getFnName (FnExpr n _ _) = n
+

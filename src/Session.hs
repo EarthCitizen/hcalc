@@ -42,8 +42,11 @@ instance (HL.MonadException m) => HL.MonadException (ExceptT e m) where
         let run' = HL.RunIO (fmap ExceptT . run . runExceptT)
          in fmap runExceptT $ f run'
 
-instance MonadRuntime Session where
+instance GetFnStore Session where
     getFnStore = gets getStore
+
+instance PutFnStore Session where
+    putFnStore fs = modify $ \(Runtime h s) -> Runtime h fs
 
 newSession :: Session ()
 newSession = Session $ return ()
@@ -70,7 +73,7 @@ processStmt ln =
     let ev = \x -> do fs <- getFnStore
                       liftEither $ E.eval x fs
         pr = liftEither $ P.parseStmt ln
-        ps (StmtFnDef _ fnDef) = addFunction fnDef
+        ps (StmtFnDef _ fnDef) = putFn fnDef
         ps (StmtExpr  _ expr)  = ev expr >>= showResult
      in pr >>= validate >>= ps
 

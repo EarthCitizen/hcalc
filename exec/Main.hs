@@ -4,3 +4,4 @@ import Session
 
 main :: IO ()
 main = runSession runREPL
+

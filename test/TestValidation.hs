@@ -5,22 +5,35 @@ import AST
 import Error
 import Runtime
 import Validation
-import TestGen (genFnName)
+import Test.Util.Data (emptyL)
+import Test.Util.Gen (genFnName)
+import Control.Monad (forM_)
 import Control.Monad.Except (Except, MonadError (catchError), runExcept)
 import Control.Monad.Reader (runReader)
 import Hedgehog
-import Hedgehog.Internal.Source (HasCallStack)
+import GHC.Stack (HasCallStack)
 import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
 
-emptyL = ("", 0, 0)
+import Test.Tasty (TestTree)
+import Test.HUnit ((@?=))
+import qualified Test.HUnit as HU (Test(..))
+import Test.Tasty.HUnit (assertBool, assertEqual, testCase)
+import Text.Printf (printf)
+
+-- test_something :: TestTree
+-- test_something = testCase "First" $ assertEqual "This" 4 5
+
+-- test_one :: TestTree
+-- test_one = testCase "Value" $ do
+--     let vs = [1,2,3,4,5] :: [Int]
+--     forM_ vs $ \x ->
+--         let msg = printf "%i should be less than 4" x
+--          in assertBool msg (x < 4)
 
 isError :: Either Error a -> Bool
 isError (Left (Error _)) = True
 isError _ = False
-
--- instance MonadRuntime State where
---     getFnStore = 
 
 assertThrowsErrror :: (MonadError Error m, MonadTest m, HasCallStack) => m a -> m ()
 assertThrowsErrror f = let go = f >> failure

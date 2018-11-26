@@ -7,14 +7,14 @@ import AST
 import Error (Error)
 import qualified Data.Map.Strict as M
 import qualified Eval as E
+import FnStore (emptyFnStore)
 import Hedgehog
 import Hedgehog.Internal.Source (HasCallStack)
 import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
-import TestGen
+import Test.Util.Gen
 
 emptyL = ("", 0, 0)
-emptyS = M.empty :: M.Map Name FnDef
 testCount = 30000 :: TestLimit
 exprSplitSize = 7 :: Size
 
@@ -47,8 +47,8 @@ checkApproxEqual t x y =
     (ApproxFloat a) === (ApproxFloat b)
 (~===) a b = a === b
 
-hprop_evalAdds :: Property
-hprop_evalAdds =
+hprop_eval_Adds :: Property
+hprop_eval_Adds =
     withTests testCount $ property $ do
         (lo, ro) <- forAll $ do
             lo' <- genFloat
@@ -56,11 +56,11 @@ hprop_evalAdds =
             return (lo', ro')
         let expected = Right (lo + ro)
             expr     = OperAdd emptyL (LitNum emptyL lo) (LitNum emptyL ro)
-            actual   = E.eval expr emptyS
+            actual   = E.eval expr emptyFnStore
         actual ~=== expected
 
-hprop_evalSubtracts :: Property
-hprop_evalSubtracts =
+hprop_eval_Subtracts :: Property
+hprop_eval_Subtracts =
     withTests testCount $ property $ do
         (lo, ro) <- forAll $ do
             lo' <- genFloat
@@ -68,11 +68,11 @@ hprop_evalSubtracts =
             return (lo', ro')
         let expected = Right (lo - ro)
             expr     = OperSub emptyL (LitNum emptyL lo) (LitNum emptyL ro)
-            actual   = E.eval expr emptyS
+            actual   = E.eval expr emptyFnStore
         actual ~=== expected
 
-hprop_evalMultiplies :: Property
-hprop_evalMultiplies =
+hprop_eval_Multiplies :: Property
+hprop_eval_Multiplies =
     withTests testCount $ property $ do
         (lo, ro) <- forAll $ do
             lo' <- genFloat
@@ -80,10 +80,10 @@ hprop_evalMultiplies =
             return (lo', ro')
         let expected = Right (lo * ro)
             expr     = OperMul emptyL (LitNum emptyL lo) (LitNum emptyL ro)
-        E.eval expr emptyS ~=== expected
+        E.eval expr emptyFnStore ~=== expected
 
-hprop_evalDivides :: Property
-hprop_evalDivides =
+hprop_eval_Divides :: Property
+hprop_eval_Divides =
     withTests testCount $ property $ do
         (lo, ro) <- forAll $ do
             lo' <- genFloat
@@ -91,11 +91,11 @@ hprop_evalDivides =
             return (lo', ro')
         let expected = Right (lo / ro)
             expr     = OperDiv emptyL (LitNum emptyL lo) (LitNum emptyL ro)
-            actual   = E.eval expr emptyS
+            actual   = E.eval expr emptyFnStore
         actual ~=== expected
 
-hprop_evalRaises :: Property
-hprop_evalRaises =
+hprop_eval_Raises :: Property
+hprop_eval_Raises =
     withTests 3000 $ property $ do
         (lo, ro) <- forAll $ do
             lo' <- genFloat
@@ -103,11 +103,11 @@ hprop_evalRaises =
             return (lo', ro')
         let expected = Right (lo ** ro)
             expr     = OperExp emptyL (LitNum emptyL lo) (LitNum emptyL ro)
-            actual   = E.eval expr emptyS
+            actual   = E.eval expr emptyFnStore
         actual ~=== expected
 
-hprop_evalExecutesNullaryFunctions :: Property
-hprop_evalExecutesNullaryFunctions =
+hprop_eval_ExecutesNullaryFunctions :: Property
+hprop_eval_ExecutesNullaryFunctions =
     withTests testCount $ property $ do
         (fn, fd, v) <- forAll $ do
             fnName <- genFnName
@@ -120,8 +120,8 @@ hprop_evalExecutesNullaryFunctions =
             actual   = E.eval expr store
         actual ~=== expected
 
-hprop_evalExecutesBinaryFunctions :: Property
-hprop_evalExecutesBinaryFunctions =
+hprop_eval_ExecutesBinaryFunctions :: Property
+hprop_eval_ExecutesBinaryFunctions =
     withTests testCount $ property $ do
         (fn, fd, plist, ve) <- forAll $ do
             fnName <- genFnName
@@ -139,8 +139,8 @@ hprop_evalExecutesBinaryFunctions =
             actual   = E.eval expr store
         actual ~=== expected
 
-hprop_evalExecutesTernaryFunctions :: Property
-hprop_evalExecutesTernaryFunctions =
+hprop_eval_ExecutesTernaryFunctions :: Property
+hprop_eval_ExecutesTernaryFunctions =
     withTests testCount $ property $ do
         (fn, fd, plist, ve) <- forAll $ do
             fnName <- genFnName
@@ -161,12 +161,12 @@ hprop_evalExecutesTernaryFunctions =
             actual   = E.eval expr store
         actual ~=== expected
 
-hprop_evalExpressions :: Property
-hprop_evalExpressions =
+hprop_eval_Expressions :: Property
+hprop_eval_Expressions =
     -- Lower count because calculating exp is expensive
     withTests 3000 $ property $ do
-        (fn, expr) <- forAll  $ Gen.resize exprSplitSize $ genExpr
+        ((fn, expr), fs) <- forAllStateGen $ Gen.resize exprSplitSize $ genExpr
         let expected = Right  $ fn
-            actual = E.eval expr emptyS
+            actual = E.eval expr fs
         actual ~=== expected
 
