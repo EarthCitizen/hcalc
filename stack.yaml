@@ -49,6 +49,7 @@ extra-deps:
     - type-level-natural-number-2.0
     - decimal-arithmetic-0.5.0.0
     - transformers-0.5.5.0
+    - monadlist-0.0.2
 
 # Override default flag values for local packages and extra-deps
 # flags: {}

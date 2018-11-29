@@ -72,7 +72,7 @@ identifier = (:) <$> MC.letterChar <*> M.many MC.alphaNumChar
 
 functionCall :: ParserContext Expr
 functionCall = do
-    let sf = space1 >> posNegFnParam
+    let sf = space >> posNegFnParam
         ps = M.manyTill sf (M.notFollowedBy sf)
     FnCall <$> location <*> identifier <*> ps
 

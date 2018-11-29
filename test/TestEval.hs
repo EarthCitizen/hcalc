@@ -8,14 +8,13 @@ import Error (Error)
 import qualified Data.Map.Strict as M
 import qualified Eval as E
 import FnStore (emptyFnStore)
+import GHC.Stack (HasCallStack)
 import Hedgehog
-import Hedgehog.Internal.Source (HasCallStack)
 import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
+import Test.Util.Data (emptyL, testCount)
 import Test.Util.Gen
 
-emptyL = ("", 0, 0)
-testCount = 30000 :: TestLimit
 exprSplitSize = 7 :: Size
 
 newtype ApproxFloat = ApproxFloat { unApprox :: Float50 }

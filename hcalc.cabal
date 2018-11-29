@@ -67,12 +67,15 @@ test-suite hcalc-test
     other-modules:       Test.Util.Gen
                        , Test.Util.Data
                        , TestEval
+                       , TestParse
                        , TestValidation
     build-depends:       base
                        , containers
+                       , extra
                        , hedgehog == 0.6
                        , ieee754 == 0.8.0
                        , mtl
+                       , monadlist == 0.0.2
                        , transformers
                        , scientific == 0.3.6.2
                        , tasty == 1.0.1.1

@@ -1,9 +1,12 @@
 module Test.Util.Data where
 
 import Alias (Location)
+import Hedgehog (TestLimit)
 
 emptyL :: Location
 emptyL = ("", 0, 0)
+
+testCount = 30000 :: TestLimit
 
 likelyFactors =
     [ 1, 2, 3, 5, 7, 9, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61

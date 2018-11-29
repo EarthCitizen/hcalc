@@ -69,6 +69,9 @@ runStateGenWith sg fs = runStateT (unStateGen sg) fs
 forAllStateGen :: (Monad m, Show a, HasCallStack) => StateGen a -> PropertyT m (a, FnStore)
 forAllStateGen = forAll . runStateGen
 
+sampleStateGen :: (MonadIO m) => StateGen a -> m (a, FnStore)
+sampleStateGen = Gen.sample . runStateGen
+
 -- genInteger :: StateGen Integer
 -- genInteger = genIntegerBetween (-50000000) 50000000
 --
@@ -94,7 +97,11 @@ genFloat = Gen.choice [ genWhole <*> genFloatBetween (-5) 5
                       ]
 
 genFloatBetween :: (MonadGen m) => Float50 -> Float50 -> m Float50
-genFloatBetween x y = genWhole <*> (Gen.realFrac_ $ Range.constant x y)
+genFloatBetween x y = Gen.filter (filter x y) $ genWhole <*> (Gen.realFrac_ $ Range.constant x y)
+    -- This fixes a subtle bug in which 1.1 was
+    -- passed to x, but 1 was returned due to genWhole
+    where filter a b | a < b = \x -> x >= a && x <= b
+          filter a b = \x -> x >= b && x <= a
 
 genFloatWhere :: (MonadGen m) => (Float50 -> Bool) -> m Float50
 genFloatWhere f = Gen.filter f genFloat
@@ -133,7 +140,16 @@ genExprFor fn depth | depth < 0 = genExprLitFor fn
                                      ]
 
 genExprLitFor :: Float50 -> StateGen Expr
-genExprLitFor f = return (LitNum emptyL f)
+genExprLitFor f = do
+    -- The parser uses Negate for negative
+    -- values, so that same behavior needs
+    -- to be duplicated here
+    return $ if signum(f) < 0
+             then Negate emptyL $ LitNum emptyL $ abs f
+             -- abs turns negative zero into zero
+             -- signum gives -0 for -0 but -0 < 0 == False
+             -- so that is fixed by abs f
+             else LitNum emptyL $ abs f
 
 genExprAddFor :: Float50 -> Depth -> StateGen Expr
 genExprAddFor f depth = do
@@ -142,10 +158,10 @@ genExprAddFor f depth = do
         ress = realToFrac f   :: Float500
         ros  = ress - los
         rof  = realToFrac ros :: Float50
-    le <- Gen.choice [ return (LitNum emptyL lof)
+    le <- Gen.choice [ genExprLitFor lof
                      , genExprFor lof depth
                      ]
-    re <- Gen.choice [ return (LitNum emptyL rof)
+    re <- Gen.choice [ genExprLitFor rof
                      , genExprFor rof depth
                      ]
     return (OperAdd emptyL le re)
@@ -157,10 +173,10 @@ genExprSubFor f depth = do
         fs  = realToFrac f   :: Float500
         los = fs + ros
         lof = realToFrac los :: Float50
-    le <- Gen.choice [ return (LitNum emptyL lof)
+    le <- Gen.choice [ genExprLitFor lof
                      , genExprFor lof depth
                      ]
-    re <- Gen.choice [ return (LitNum emptyL rof)
+    re <- Gen.choice [ genExprLitFor rof
                      , genExprFor rof depth
                      ]
     return (OperSub emptyL le re)
@@ -169,10 +185,10 @@ genExprMulFor :: Float50 -> Depth -> StateGen Expr
 genExprMulFor f depth = do
     ro  <- genFloatWhere gtltZero
     let lo = f / ro
-    le <- Gen.choice [ return (LitNum emptyL lo)
+    le <- Gen.choice [ genExprLitFor lo
                      , genExprFor lo depth
                      ]
-    re <- Gen.choice [ return (LitNum emptyL ro)
+    re <- Gen.choice [ genExprLitFor ro
                      , genExprFor ro depth
                      ]
     return (OperMul emptyL le re)
@@ -181,24 +197,26 @@ genExprDivFor :: Float50 -> Depth -> StateGen Expr
 genExprDivFor f depth = do
     ro  <- genFloatWhere gtltZero
     let lo = f * ro
-    le <- Gen.choice [ return (LitNum emptyL lo)
+    le <- Gen.choice [ genExprLitFor lo
                      , genExprFor lo depth
                      ]
-    re <- Gen.choice [ return (LitNum emptyL ro)
+    re <- Gen.choice [ genExprLitFor ro
                      , genExprFor ro depth
                      ]
     return (OperDiv emptyL le re)
 
 genExprExpFor :: Float50 -> Depth -> StateGen Expr
 genExprExpFor f depth
-    | f <= 0 = return $ LitNum emptyL f
+    | f <= 0 = genExprLitFor f
     | otherwise = do
+        -- 1.1 prevents calucation of Infinity for
+        -- e, which happens if b = 1
         b <- genFloatBetween 1.1 10000
         let e = log f / log b
-        bo <- Gen.choice [ return $ (LitNum emptyL b)
+        bo <- Gen.choice [ genExprLitFor b
                          , genExprFor b depth
                          ]
-        eo <- Gen.choice [ return (LitNum emptyL e)
+        eo <- Gen.choice [ genExprLitFor e
                          , genExprFor e depth
                          ]
         return (OperExp emptyL bo eo)
@@ -218,7 +236,8 @@ genExprFnFor f depth = do
         me = OperMul emptyL le re
         fd = FnExpr n [p] me
     putFn fd
-    return $ FnCall emptyL n [LitNum emptyL lo]
+    el <- genExprLitFor lo
+    return $ FnCall emptyL n [el]
 
 exprToString :: Expr -> String
 exprToString (LitNum  _ d) = "(" ++ show d ++ ")"
