@@ -235,7 +235,7 @@ genExprFnFor f depth = do
         le = FnCall emptyL p []
         me = OperMul emptyL le re
         fd = FnExpr n [p] me
-    putFn fd
+    putFnM fd
     el <- genExprLitFor lo
     return $ FnCall emptyL n [el]
 

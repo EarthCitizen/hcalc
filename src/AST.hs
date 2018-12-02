@@ -6,6 +6,7 @@ module AST ( FnRef(..)
            , Stmt(..)
            , getExprLocation
            , getFnName
+           , isFnReadOnly
            ) where
 
 import Alias
@@ -99,4 +100,8 @@ instance Eq Stmt where
 getFnName :: FnDef -> String
 getFnName (FnReal n _ _) = n
 getFnName (FnExpr n _ _) = n
+
+isFnReadOnly :: FnDef -> Bool
+isFnReadOnly (FnReal _ _ _) = True
+isFnReadOnly _ = False
 

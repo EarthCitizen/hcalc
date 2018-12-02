@@ -1,15 +1,19 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+
 module TestValidation where
 
 import Alias
 import AST
 import Error
+import FnStore (FnStore, GetFnStore(..), emptyFnStore, putFn)
 import Runtime
 import Validation
 import Test.Util.Data (emptyL)
 import Test.Util.Gen (genFnName)
 import Control.Monad (forM_)
-import Control.Monad.Except (Except, MonadError (catchError), runExcept)
-import Control.Monad.Reader (runReader)
+import Control.Monad.Except (Except, MonadError (catchError), runExcept, runExceptT)
+import Control.Monad.Reader (MonadReader (ask), ReaderT, runReaderT)
 import Hedgehog
 import GHC.Stack (HasCallStack)
 import qualified Hedgehog.Gen as Gen
@@ -20,6 +24,24 @@ import Test.HUnit ((@?=))
 import qualified Test.HUnit as HU (Test(..))
 import Test.Tasty.HUnit (assertBool, assertEqual, testCase)
 import Text.Printf (printf)
+
+instance (Monad m) => GetFnStore (ReaderT FnStore m) where
+    getFnStore = ask
+
+newtype TestRuntime a = TestRuntime { unTestRuntime :: ReaderT FnStore (Except Error) a }
+    deriving ( Functor
+             , Applicative
+             , Monad
+             , MonadReader FnStore
+             , MonadError Error
+             )
+
+instance GetFnStore TestRuntime where
+    getFnStore = TestRuntime $ getFnStore
+
+runTestRuntime :: TestRuntime a -> FnStore -> Either Error a
+runTestRuntime t  fs = let rd = runReaderT (unTestRuntime t) fs
+                        in runExcept rd
 
 -- test_something :: TestTree
 -- test_something = testCase "First" $ assertEqual "This" 4 5
@@ -39,6 +61,16 @@ assertThrowsErrror :: (MonadError Error m, MonadTest m, HasCallStack) => m a -> 
 assertThrowsErrror f = let go = f >> failure
                         in catchError go (\e -> success)
 
+hprop_validate_cannotOverwriteROFunction :: Property
+hprop_validate_cannotOverwriteROFunction =
+    property $ do
+        fn <- forAll genFnName
+        let f  = FnReal fn [] $ FnNullary 5
+            fs = putFn f emptyFnStore
+            fd = FnExpr fn [] $ LitNum emptyL 5
+            sd = StmtFnDef emptyL fd
+        assert $ isError $ runTestRuntime (validate sd) fs
+
 hprop_validate_paramNameCannotMatchFunName :: Property
 hprop_validate_paramNameCannotMatchFunName =
     property $ do
@@ -47,9 +79,9 @@ hprop_validate_paramNameCannotMatchFunName =
             let p1 = fn
                 p2 = fn ++ "x"
             return (fn, [p1, p2])
-        let fnDef = FnExpr fn ps $ LitNum emptyL 5
-            stmtFnDef = StmtFnDef emptyL fnDef
-        assert $ isError $ runExcept (validate stmtFnDef :: Except Error Stmt)
+        let fd = FnExpr fn ps $ LitNum emptyL 5
+            sd = StmtFnDef emptyL fd
+        assert $ isError $ runTestRuntime (validate sd) emptyFnStore
 
 hprop_validate_paramNameCannotBeDup :: Property
 hprop_validate_paramNameCannotBeDup =
@@ -59,9 +91,9 @@ hprop_validate_paramNameCannotBeDup =
             let p1 = fn ++ "y"
                 p2 = fn ++ "x"
             return (fn, [p1, p2, p1])
-        let fnDef = FnExpr fn ps $ LitNum emptyL 5
-            stmtFnDef = StmtFnDef emptyL fnDef
-        assert $ isError $ runExcept (validate stmtFnDef :: Except Error Stmt)
+        let fd = FnExpr fn ps $ LitNum emptyL 5
+            sd = StmtFnDef emptyL fd
+        assert $ isError $ runTestRuntime (validate sd) emptyFnStore
 
 hprop_validate_passesValidFunction :: Property
 hprop_validate_passesValidFunction =
@@ -72,10 +104,10 @@ hprop_validate_passesValidFunction =
                 p2 = fn ++ "x"
             return (fn, [p1, p2])
         let ln    = LitNum emptyL 5
-            fnDef = FnExpr fn ps ln
-            stmtFnDef = StmtFnDef emptyL fnDef
+            fd = FnExpr fn ps ln
+            sd = StmtFnDef emptyL fd
             isSameFnDef (StmtFnDef _ (FnExpr f1 p1 l1)) =
                 assert $ f1 == fn && p1 == ps && l1 == ln
             isSameFnDef _ = failure
-        (evalEither $ runExcept $ (validate stmtFnDef :: Except Error Stmt)) >>= isSameFnDef
+        (evalEither $ runTestRuntime (validate sd) emptyFnStore) >>= isSameFnDef
 

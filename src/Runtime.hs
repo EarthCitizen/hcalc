@@ -1,17 +1,9 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Runtime ( FnStore
-               , emptyFnStore
-               , Runtime(..)
+module Runtime ( Runtime(..)
                , mkDefaultRuntime
                , mkRuntime
                , addHistory
-               -- , isExtFnRO
-               , GetFnStore (..)
-               , getFn
-               , hasFn
-               , PutFnStore (..)
-               , putFn
                ) where
 
 import Alias
@@ -56,13 +48,4 @@ mkDefaultRuntime = let s = M.fromList $ fnDefToTuple <$> preDefFns
 
 addHistory :: (MonadState Runtime m) => String -> m ()
 addHistory l = modify (\(Runtime h s) -> Runtime (l:h) s)
-
--- isExtFnRO :: (GetFnStore m) => String -> m Bool
--- isExtFnRO n = do
---     fn <- getFn n
---     return $ maybe False isReadOnlyFn fn
-
-isReadOnlyFn :: FnDef -> Bool
-isReadOnlyFn (FnReal _ _ _) = True
-isReadOnlyFn _ = False
 

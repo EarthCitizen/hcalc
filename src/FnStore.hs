@@ -3,7 +3,7 @@ module FnStore where
 import Alias
 import AST
 
--- import Data.Maybe (isJust)
+import Data.Maybe (isJust, maybe)
 
 import qualified Data.Map.Strict as M
 
@@ -18,22 +18,31 @@ class (Monad m) => GetFnStore m where
 class (GetFnStore m) => PutFnStore m where
     putFnStore :: FnStore -> m ()
 
-getFn :: (GetFnStore m) => String -> m (Maybe FnDef)
-getFn n = do
+getFnM :: (GetFnStore m) => Name -> m (Maybe FnDef)
+getFnM n = do
     fs <- getFnStore
     return $ M.lookup n fs
 
--- hasFn :: (GetFnStore m) => String -> m Bool
--- hasFn s = do
---     x <- getFn s
---     return $ isJust x
+hasFnM :: (GetFnStore m) => Name -> m Bool
+hasFnM n = do
+    x <- getFnM n
+    return $ isJust x
 
-hasFn :: String -> FnStore -> Bool
+hasFn :: Name -> FnStore -> Bool
 hasFn n fs = M.member n fs
 
-putFn :: (PutFnStore m) => FnDef -> m ()
-putFn fd = do
+maybeFnM :: (GetFnStore m) => Name -> a -> (FnDef -> a) -> m a
+maybeFnM n d f = do
+    x <- getFnM n
+    return $ maybe d f x
+
+putFnM :: (PutFnStore m) => FnDef -> m ()
+putFnM fd = do
     fs <- getFnStore
+    putFnStore $ putFn fd fs
+
+putFn :: FnDef -> FnStore -> FnStore
+putFn fd fs =
     let n = getFnName fd
-    putFnStore $ M.insert n fd fs
+     in M.insert n fd fs
 

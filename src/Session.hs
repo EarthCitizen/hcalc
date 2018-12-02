@@ -10,6 +10,7 @@ import Control.Monad.Trans.Class (lift)
 import Data.List.Extra (trim)
 import Error
 import qualified Eval as E
+import FnStore (GetFnStore(..), PutFnStore(..), putFnM)
 import Runtime
 import qualified Parse as P
 import System.Exit
@@ -73,7 +74,7 @@ processStmt ln =
     let ev = \x -> do fs <- getFnStore
                       liftEither $ E.eval x fs
         pr = liftEither $ P.parseStmt ln
-        ps (StmtFnDef _ fnDef) = putFn fnDef
+        ps (StmtFnDef _ fnDef) = putFnM fnDef
         ps (StmtExpr  _ expr)  = ev expr >>= showResult
      in pr >>= validate >>= ps
 

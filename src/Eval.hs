@@ -6,7 +6,7 @@ import Control.Monad.Except
 import Control.Monad.Reader
 import Error
 import qualified Data.Map.Strict as M
-import Runtime (FnStore)
+import FnStore (FnStore)
 
 data EvalState = EvalState FnStore Location deriving (Show)
 
