@@ -2,7 +2,7 @@ module Session (runSession, runREPL) where
 
 import Alias
 import AST
-import Control.Monad (forever)
+import Control.Monad ((>=>), forever)
 import Control.Monad.Except(ExceptT(..), MonadError(..), liftEither, runExceptT)
 import Control.Monad.Extra (eitherM)
 import Control.Monad.State.Strict
@@ -66,7 +66,17 @@ getSessionLine prompt = Session $ lift $ lift $ tryAction $ HL.getInputLine prom
 
 processSessionLine :: Maybe String -> Session ()
 processSessionLine = maybe exit go
-    where go = processStmt . trim
+    where go = processLine . trim
+
+processLine :: String -> Session ()
+processLine "" = return ()
+processLine ln =
+    let ev = \x -> do fs <- getFnStore
+                      liftEither $ E.eval x fs
+        pr = liftEither $ P.parseLine ln
+        ps (StmtFnDef _ fnDef) = putFnM fnDef
+        ps (StmtExpr  _ expr)  = ev expr >>= showResult
+     in pr >>= (mapM_ (validate >=> ps))
 
 processStmt :: String -> Session ()
 processStmt "" = return ()

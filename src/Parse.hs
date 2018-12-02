@@ -1,10 +1,11 @@
-module Parse (Parser, parseStmt) where
+module Parse (Parser, parseLine, parseStmt) where
 
 import Alias
 import AST
 import Control.Applicative (Alternative, (<|>))
 import Control.Monad.State.Strict
 import Control.Monad.Reader
+import Data.List.Extra (trim, wordsBy)
 import Data.Void
 import qualified Data.List.NonEmpty as NE
 import Error (Error(ParseError))
@@ -124,6 +125,10 @@ ipeToParseErr e s =
 parseStmt :: String -> Either Error Stmt
 parseStmt s = let sp = statement <* M.eof
                in runParserContext sp s
+
+parseLine :: String -> Either Error [Stmt]
+parseLine s = let stmts = filter (not . null . trim) $ wordsBy (==';') s
+               in forM stmts parseStmt
 
 runParserContext :: ParserContext a -> Source -> Either Error a
 runParserContext pc s =
