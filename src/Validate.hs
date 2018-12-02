@@ -1,4 +1,4 @@
-module Validation (validate) where
+module Validate (validate) where
 
 import Alias
 import AST

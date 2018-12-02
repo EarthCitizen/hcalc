@@ -16,7 +16,7 @@ import qualified Parse as P
 import System.Exit
 import qualified System.Console.Haskeline as HL
 import Data.Maybe (maybe)
-import Validation
+import Validate
 
 exit = liftIO (exitSuccess :: IO ())
 

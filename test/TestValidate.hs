@@ -1,14 +1,14 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module TestValidation where
+module TestValidate where
 
 import Alias
 import AST
 import Error
 import FnStore (FnStore, GetFnStore(..), emptyFnStore, putFn)
 import Runtime
-import Validation
+import Validate
 import Test.Util.Data (emptyL)
 import Test.Util.Gen (genFnName)
 import Control.Monad (forM_)

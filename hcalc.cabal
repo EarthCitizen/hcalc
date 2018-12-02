@@ -30,7 +30,7 @@ library
                        , Parse
                        , Runtime
                        , Session
-                       , Validation
+                       , Validate
     build-depends:       base >= 4.7 && < 5
                        , mtl == 2.2.2
                        , megaparsec == 6.4.1
@@ -68,7 +68,7 @@ test-suite hcalc-test
                        , Test.Util.Data
                        , TestEval
                        , TestParse
-                       , TestValidation
+                       , TestValidate
     build-depends:       base
                        , containers
                        , extra
