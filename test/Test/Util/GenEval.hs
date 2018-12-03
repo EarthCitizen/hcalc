@@ -1,16 +1,16 @@
 {-# LANGUAGE BangPatterns #-}
 
-module Test.Util.Gen ( StateGen(..)
-                     , runStateGen
-                     , runStateGenWith
-                     , forAllStateGen
-                     , genExpr
-                     , genFloat
-                     , genFloatBetween
-                     , genFloatWhere
-                     , genFnName
-                     , genN
-                     ) where
+module Test.Util.GenEval ( StateGen(..)
+                         , runStateGen
+                         , runStateGenWith
+                         , forAllStateGen
+                         , genExpr
+                         , genFloat
+                         , genFloatBetween
+                         , genFloatWhere
+                         , genFnName
+                         , genN
+                         ) where
 
 import Debug.Trace (trace, traceM)
 

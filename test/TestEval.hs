@@ -13,7 +13,7 @@ import Hedgehog
 import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
 import Test.Util.Data (emptyL, testCount)
-import Test.Util.Gen
+import Test.Util.GenEval
 
 exprSplitSize = 7 :: Size
 

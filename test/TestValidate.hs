@@ -10,7 +10,7 @@ import FnStore (FnStore, GetFnStore(..), emptyFnStore, putFn)
 import Runtime
 import Validate
 import Test.Util.Data (emptyL)
-import Test.Util.Gen (genFnName)
+import Test.Util.GenEval (genFnName)
 import Control.Monad (forM_)
 import Control.Monad.Except (Except, MonadError (catchError), runExcept, runExceptT)
 import Control.Monad.Reader (MonadReader (ask), ReaderT, runReaderT)

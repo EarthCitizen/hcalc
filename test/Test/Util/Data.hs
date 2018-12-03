@@ -1,10 +1,23 @@
 module Test.Util.Data where
 
 import Alias (Location)
+import AST
 import Hedgehog (TestLimit)
 
 emptyL :: Location
 emptyL = ("", 0, 0)
+
+litNum_  = LitNum emptyL
+negate_  = Negate emptyL
+operExp_ = OperExp emptyL
+operMul_ = OperMul emptyL
+operDiv_ = OperDiv emptyL
+operAdd_ = OperAdd emptyL
+operSub_ = OperSub emptyL
+fnCall_  = FnCall emptyL
+
+stmtFnDef_ = StmtFnDef emptyL
+stmtExpr_  = StmtExpr emptyL
 
 testCount = 30000 :: TestLimit
 

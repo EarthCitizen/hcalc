@@ -64,7 +64,8 @@ test-suite hcalc-test
     default-extensions:  GeneralizedNewtypeDeriving
                        , FlexibleContexts
                        , OverloadedStrings
-    other-modules:       Test.Util.Gen
+    other-modules:       Test.Util.GenEval
+                       , Test.Util.GenParse
                        , Test.Util.Data
                        , TestEval
                        , TestParse

@@ -123,7 +123,7 @@ ipeToParseErr e s =
      in ParseError (s, linNum, colNum) errMsg
 
 parseStmt :: String -> Either Error Stmt
-parseStmt s = let sp = statement <* M.eof
+parseStmt s = let sp = space *> statement <* M.eof
                in runParserContext sp s
 
 parseLine :: String -> Either Error [Stmt]
