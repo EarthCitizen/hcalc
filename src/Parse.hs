@@ -32,10 +32,8 @@ binaryr c t = ME.InfixR $ c <$> (location <* symbol t)
 
 operators :: [[ME.Operator ParserContext Expr]]
 operators = [[binaryr OperExp "^"]
-            ,[binaryl OperMul "*"]
-            ,[binaryl OperDiv "/"]
-            ,[binaryl OperAdd "+"]
-            ,[binaryl OperSub "-"]
+            ,[binaryl OperMul "*", binaryl OperDiv "/"]
+            ,[binaryl OperAdd "+", binaryl OperSub "-"]
             ]
 
 space :: ParserContext ()
