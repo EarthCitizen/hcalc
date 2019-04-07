@@ -3,6 +3,7 @@
 module Test.Util.GenEval ( StateGen(..)
                          , runStateGen
                          , runStateGenWith
+                         , sampleStateGen
                          , forAllStateGen
                          , genExpr
                          , genFloat

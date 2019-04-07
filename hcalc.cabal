@@ -21,6 +21,7 @@ library
                        , FlexibleContexts
                        , StandaloneDeriving
                        , OverloadedStrings
+                       , ViewPatterns
     exposed-modules:     Alias
                        , AST
                        , Error
@@ -63,9 +64,12 @@ test-suite hcalc-test
     ghc-options:         -O2 -rtsopts -with-rtsopts=-N
     default-extensions:  GeneralizedNewtypeDeriving
                        , FlexibleContexts
+                       , PatternSynonyms
                        , OverloadedStrings
+                       , ViewPatterns
     other-modules:       Test.Util.GenEval
                        , Test.Util.GenParse
+                       , Test.Util.GenUnparse
                        , Test.Util.Data
                        , TestEval
                        , TestParse
