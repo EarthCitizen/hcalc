@@ -76,6 +76,7 @@ test-suite hcalc-test
     build-depends:       base
                        , containers
                        , extra
+                       , hedgehog == 0.6.1
                        , ieee754 == 0.8.0
                        , mtl
                        , monadlist == 0.0.2
