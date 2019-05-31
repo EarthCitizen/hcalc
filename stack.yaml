@@ -15,7 +15,7 @@
 # resolver:
 #  name: custom-snapshot
 #  location: "./custom-snapshot.yaml"
-resolver: lts-11.1
+resolver: lts-13.23
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -40,16 +40,16 @@ packages:
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
 extra-deps:
-    - Shellac-0.9.9
     - extra-1.6.13
-    - hedgehog-0.6
     - tasty-hedgehog-0.2.0.0
     - scientific-0.3.6.2
     - approximate-equality-1.1.0.2
     - type-level-natural-number-2.0
-    - decimal-arithmetic-0.5.0.0
-    - transformers-0.5.5.0
+    - decimal-arithmetic-0.5.1.0
     - monadlist-0.0.2
+    - megaparsec-6.5.0
+    - parser-combinators-0.4.0
+    - containers-0.5.11.0
 
 # Override default flag values for local packages and extra-deps
 # flags: {}

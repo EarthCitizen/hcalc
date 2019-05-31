@@ -88,7 +88,10 @@ getExprLocation (FnCall  l _ _) = l
 
 data Stmt = StmtFnDef Location FnDef
           | StmtExpr  Location Expr
-          deriving (Show)
+
+instance Show Stmt where
+    show (StmtFnDef _ fd) = printf "StmtFnDef (%s)" (show fd)
+    show (StmtExpr  _ e)  = printf "StmtExpr (%s)" (show e)
 
 instance Eq Stmt where
     (StmtFnDef _ fda) == (StmtFnDef _ fdb) =

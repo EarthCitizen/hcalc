@@ -1,4 +1,4 @@
-module Test.Util.GenParse where
+module Test.Util.GenParse (genStmts) where
 
 import Alias
 import AST
@@ -12,12 +12,12 @@ import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
 
 genList :: (MonadGen m) => m a -> m [a]
-genList = Gen.list (Range.constant 0 10)
+genList = Gen.list (Range.linear 0 200)
 
 genFnName :: (MonadGen m) => m String
 genFnName = do
     c1 <- Gen.alpha
-    cx <- Gen.list (Range.constant 0 50) Gen.alphaNum
+    cx <- Gen.list (Range.linear 0 50) Gen.alphaNum
     return (c1:cx)
 
 genFloat :: (MonadGen m) => m Float50
@@ -45,29 +45,6 @@ genStmt = Gen.choice [ stmtFnDef_ <$> genFnDef
                      , stmtExpr_  <$> genExpr
                      ]
 
-genSpacing :: (MonadGen m) => m String
-genSpacing = let r = Range.constant 1 12
-                 a = Gen.list r $ Gen.element [' ', '\t']
-                 b = Gen.constant []
-              in Gen.frequency [ (1, a)
-                               , (2, b)
-                               ]
-
-genSemicolonList :: (MonadGen m) => m String
-genSemicolonList = do
-    let r = Range.constant 1 50
-    scs <- Gen.frequency [ (1, Gen.constant [";"])
-                         , (2, Gen.list r $ Gen.constant ";")
-                         ]
-    bs  <- genSpacing
-    is  <- intercalateM genSpacing scs
-    as  <- genSpacing
-    return $ bs ++ is ++ as
-
-genConcatPad :: (MonadGen m ) => [String] -> m String
-genConcatPad ss = do
-    bs <- genSpacing
-    is <- intercalateM genSpacing ss
-    as <- genSpacing
-    return $ concat [bs, is, as]
+genStmts :: (MonadGen m) => m [Stmt]
+genStmts = genList genStmt
 

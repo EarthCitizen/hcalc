@@ -71,16 +71,13 @@ identifier = (:) <$> MC.letterChar <*> M.many MC.alphaNumChar
 
 functionCall :: ParserContext Expr
 functionCall = do
-    let sf = space >> posNegFnParam
+    let sf = space >> functionParam
         ps = M.manyTill sf (M.notFollowedBy sf)
     FnCall <$> location <*> identifier <*> ps
 
 functionParam :: ParserContext Expr
-functionParam = let unary = (\l i -> FnCall l i []) <$> location <*> identifier
-                 in nested <|> M.try unary <|> M.try float <|> M.try integer
-
-posNegFnParam :: ParserContext Expr
-posNegFnParam = M.try (negated functionParam) <|> functionParam
+functionParam = let nullary = (\l i -> FnCall l i []) <$> location <*> identifier
+                 in nested <|> M.try nullary <|> M.try float <|> M.try integer
 
 negated :: ParserContext Expr -> ParserContext Expr
 negated p = Negate <$> location <*> (MC.char '-' *> p)
@@ -100,9 +97,19 @@ statement = M.try stmtFnDef <|> (StmtExpr <$> location <*> expression)
 
 stmtFnDef :: ParserContext Stmt
 stmtFnDef = do
-    (n:ps) <- M.sepEndBy1 identifier space1
+    fnps    <- M.sepEndBy1 identifier space1
+    (n, ps) <- failIfEmpty fnps
     symbol "="
     StmtFnDef <$> location <*> (FnExpr n ps <$> expression)
+        -- This is only to make GHC 8.6 happy
+        -- Without this, it complains that the pattern match,
+        -- which was previously (n:ps) would fail:
+        -- > No instance for (Control.Monad.Fail.MonadFail ParserContext)
+        -- > arising from a do statement
+        -- > with the failable pattern ‘(n : ps)’
+        where failIfEmpty [] = fail "This should never happen"
+              failIfEmpty (n:ps) = return (n, ps)
+
 
 location :: ParserContext Location
 location = do

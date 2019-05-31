@@ -32,17 +32,16 @@ library
                        , Runtime
                        , Session
                        , Validate
-    build-depends:       base >= 4.7 && < 5
+    build-depends:       base == 4.12.0.0
                        , mtl == 2.2.2
-                       , megaparsec == 6.4.1
-                       , text == 1.2.3.0
+                       , megaparsec == 6.5.0
+                       , text == 1.2.3.1
                        , parser-combinators == 0.4.0
-                       , haskeline == 0.7.4.2
-                       , transformers == 0.5.5.0
-                       , Shellac == 0.9.9
+                       , haskeline == 0.7.5.0
+                       , transformers == 0.5.6.2
                        , extra == 1.6.13
-                       , containers == 0.5.10.2
-                       , decimal-arithmetic == 0.5.0.0
+                       , containers == 0.5.11.0
+                       , decimal-arithmetic == 0.5.1.0
 
 executable hcalc
     hs-source-dirs:      exec
@@ -77,15 +76,14 @@ test-suite hcalc-test
     build-depends:       base
                        , containers
                        , extra
-                       , hedgehog == 0.6
                        , ieee754 == 0.8.0
                        , mtl
                        , monadlist == 0.0.2
                        , transformers
                        , scientific == 0.3.6.2
-                       , tasty == 1.0.1.1
+                       , tasty == 1.2
                        , tasty-hedgehog == 0.2.0.0
-                       , tasty-discover == 4.2.0
+                       , tasty-discover == 4.2.1
                        , tasty-hunit == 0.10.0.1
                        , HUnit == 1.6.0.0
                        , hcalc
