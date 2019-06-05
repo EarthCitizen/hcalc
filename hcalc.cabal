@@ -26,7 +26,7 @@ library
                        , AST
                        , Error
                        , Eval
-                       , FnPredef
+                       , Predef
                        , FnStore
                        , Parse
                        , Runtime
@@ -77,6 +77,7 @@ test-suite hcalc-test
                        , containers
                        , extra
                        , hedgehog == 0.6.1
+                       , hspec == 2.6.1
                        , ieee754 == 0.8.0
                        , mtl
                        , monadlist == 0.0.2
@@ -85,6 +86,7 @@ test-suite hcalc-test
                        , tasty == 1.2
                        , tasty-hedgehog == 0.2.0.0
                        , tasty-discover == 4.2.1
+                       , tasty-hspec == 1.1.5.1
                        , tasty-hunit == 0.10.0.1
                        , HUnit == 1.6.0.0
                        , hcalc

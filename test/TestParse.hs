@@ -7,9 +7,11 @@ import Test.Util.Data
 import Test.Util.GenParse
 import Test.Util.GenUnparse
 
+import Control.Monad (forM_)
 import Control.Monad.Extra (concatMapM)
 import Control.Monad.ListM (intercalateM)
 import Hedgehog
+import Test.Hspec
 import Test.Tasty (TestTree)
 
 import qualified Hedgehog.Gen as Gen
@@ -23,24 +25,46 @@ genStringStmts = do
     s  <- genUnparseStmts xs
     return (s, xs)
 
--- hprop_parseStmt_handlesWhitespace :: Property
--- hprop_parseStmt_handlesWhitespace =
---     withTests 500 $ property $ do
---         (s, e) <- forAll genStringExpr
---         let expected = Right $ stmtExpr_ e
---             actual   = parseStmt s
---         annotate "Expected:"
---         annotate $ show e
---         annotate "Generated String:"
---         annotate s
---         annotate "Parsed Statement:"
---         annotate $ show $ actual
---         actual === expected
+operPrec = [ ("1*2+3", operAdd_ (operMul_ (litNum_ 1) (litNum_ 2)) (litNum_ 3))
+           , ("1/2-3", operSub_ (operDiv_ (litNum_ 1) (litNum_ 2)) (litNum_ 3))
+           , ("1^2*3", operMul_ (operExp_ (litNum_ 1) (litNum_ 2)) (litNum_ 3))
+           ]
 
-hprop_parseLine :: Property
-hprop_parseLine =
-    withTests 500 $ property $ do
-        (s, ss) <- forAll genStringStmts
+-- ^ is right associative
+operAsoc = [ ("1^2^3", operExp_ (litNum_ 1) (operExp_ (litNum_ 2) (litNum_ 3)))
+           , ("1*2*3", operMul_ (operMul_ (litNum_ 1) (litNum_ 2)) (litNum_ 3))
+           , ("1/2/3", operDiv_ (operDiv_ (litNum_ 1) (litNum_ 2)) (litNum_ 3))
+           , ("1+2+3", operAdd_ (operAdd_ (litNum_ 1) (litNum_ 2)) (litNum_ 3))
+           , ("1-2-3", operSub_ (operSub_ (litNum_ 1) (litNum_ 2)) (litNum_ 3))
+           ]
+
+parenths = [ ("(1^2)^3", operExp_ (operExp_ (litNum_ 1) (litNum_ 2)) (litNum_ 3))
+           , ("(1*2)*3", operMul_ (operMul_ (litNum_ 1) (litNum_ 2)) (litNum_ 3))
+           , ("(1/2)/3", operDiv_ (operDiv_ (litNum_ 1) (litNum_ 2)) (litNum_ 3))
+           , ("(1+2)+3", operAdd_ (operAdd_ (litNum_ 1) (litNum_ 2)) (litNum_ 3))
+           , ("(1-2)-3", operSub_ (operSub_ (litNum_ 1) (litNum_ 2)) (litNum_ 3))
+           , ("1*(2+3)", operMul_ (litNum_ 1) (operAdd_ (litNum_ 2) (litNum_ 3)))
+           , ("1/(2-3)", operDiv_ (litNum_ 1) (operSub_ (litNum_ 2) (litNum_ 3)))
+           , ("1^(2*3)", operExp_ (litNum_ 1) (operMul_ (litNum_ 2) (litNum_ 3)))
+           ]
+
+spec_parseLine :: Spec
+spec_parseLine = do
+    describe "order of operations" $ do
+        it "respects operator precedence" $ forM_ operPrec $
+            \(input, expectation) -> do
+                parseLine input `shouldBe` Right [stmtExpr_ expectation]
+        it "respects operator associativity" $ forM_ operAsoc $
+            \(input, expectation) -> do
+                parseLine input `shouldBe` Right [stmtExpr_ expectation]
+        it "respects parentheses" $ forM_ parenths $
+            \(input, expectation) -> do
+                parseLine input `shouldBe` Right [stmtExpr_ expectation]
+
+hprop_parseLine_parses_expressions :: Property
+hprop_parseLine_parses_expressions =
+    withTests 250 $ property $ do
+        (s, ss) <- forAll $ Gen.scale (\s -> min s 15) $ genStringStmts
         let expected = Right ss :: Either Error [Stmt]
             actual   = parseLine s
         annotate "Expected:"

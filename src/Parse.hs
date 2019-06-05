@@ -5,10 +5,15 @@ import AST
 import Control.Applicative (Alternative, (<|>))
 import Control.Monad.State.Strict
 import Control.Monad.Reader
+import Data.Function ((&))
+import Data.List (sortBy)
 import Data.List.Extra (trim, wordsBy)
 import Data.Void
-import qualified Data.List.NonEmpty as NE
 import Error (Error(ParseError))
+import Predef (predefOprsByPrec)
+
+import qualified Data.Map.Strict as MAP
+import qualified Data.List.NonEmpty as NE
 import qualified Text.Megaparsec as M
 import qualified Text.Megaparsec.Char as MC
 import qualified Text.Megaparsec.Expr as ME
@@ -27,14 +32,25 @@ newtype ParserContext a = ParserContext { unParserContext :: ReaderT Source Pars
                                  , MonadReader Source
                                  )
 
-binaryl c t = ME.InfixL $ c <$> (location <* symbol t)
-binaryr c t = ME.InfixR $ c <$> (location <* symbol t)
+ordInvert LT = GT
+ordInvert EQ = EQ
+ordInvert GT = LT
+
+highestFirst = \x y -> compare x y & ordInvert
+
+precs = MAP.keys predefOprsByPrec & sortBy highestFirst
+
+operToParser :: Operator -> ME.Operator ParserContext Expr
+operToParser o@(OpInfix _ fx _ fn) =
+    f fx $ OperInf <$> location <*> pure o <* (symbol $ operString o)
+    where f LFix = ME.InfixL
+          f RFix = ME.InfixR
 
 operators :: [[ME.Operator ParserContext Expr]]
-operators = [[binaryr OperExp "^"]
-            ,[binaryl OperMul "*", binaryl OperDiv "/"]
-            ,[binaryl OperAdd "+", binaryl OperSub "-"]
-            ]
+operators = let opPrecLists = (\k -> (MAP.!) predefOprsByPrec k) <$> precs
+                ff = fmap . fmap
+             in ff operToParser opPrecLists
+-- operators = MAP.elems $ MAP.map (fmap operToParser) predefOprsByPrec
 
 space :: ParserContext ()
 space = MC.space

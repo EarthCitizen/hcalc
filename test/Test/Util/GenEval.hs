@@ -15,21 +15,23 @@ module Test.Util.GenEval ( StateGen(..)
 
 import Debug.Trace (trace, traceM)
 
-import Alias
 import AST
+import Alias
 import Control.Monad (forM)
 import Control.Monad.State.Strict
 import Control.Monad.Trans.Class (lift)
 import Data.List (nub, sort)
 import Data.Scientific (fromFloatDigits, toRealFloat)
-import qualified Data.Map.Strict as M
-import qualified Eval as E
 import FnStore
 import GHC.Stack (HasCallStack)
 import Hedgehog
+import Predef
+import Test.Util.Data
+
+import qualified Data.List.NonEmpty as NE
+import qualified Eval as E
 import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
-import Test.Util.Data
 
 isRemZero z x = 0 == rem z x
 
@@ -165,7 +167,7 @@ genExprAddFor f depth = do
     re <- Gen.choice [ genExprLitFor rof
                      , genExprFor rof depth
                      ]
-    return (OperAdd emptyL le re)
+    return (OperInf emptyL predefOperAdd le re)
 
 genExprSubFor :: Float50 -> Depth -> StateGen Expr
 genExprSubFor f depth = do
@@ -180,7 +182,7 @@ genExprSubFor f depth = do
     re <- Gen.choice [ genExprLitFor rof
                      , genExprFor rof depth
                      ]
-    return (OperSub emptyL le re)
+    return (OperInf emptyL predefOperSub le re)
 
 genExprMulFor :: Float50 -> Depth -> StateGen Expr
 genExprMulFor f depth = do
@@ -192,7 +194,7 @@ genExprMulFor f depth = do
     re <- Gen.choice [ genExprLitFor ro
                      , genExprFor ro depth
                      ]
-    return (OperMul emptyL le re)
+    return (OperInf emptyL predefOperMul le re)
 
 genExprDivFor :: Float50 -> Depth -> StateGen Expr
 genExprDivFor f depth = do
@@ -204,7 +206,7 @@ genExprDivFor f depth = do
     re <- Gen.choice [ genExprLitFor ro
                      , genExprFor ro depth
                      ]
-    return (OperDiv emptyL le re)
+    return (OperInf emptyL predefOperDiv le re)
 
 genExprExpFor :: Float50 -> Depth -> StateGen Expr
 genExprExpFor f depth
@@ -220,7 +222,7 @@ genExprExpFor f depth
         eo <- Gen.choice [ genExprLitFor e
                          , genExprFor e depth
                          ]
-        return (OperExp emptyL bo eo)
+        return (OperInf emptyL predefOperExp bo eo)
 
 genExprFnFor :: Float50 -> Depth -> StateGen Expr
 genExprFnFor f depth = do
@@ -234,7 +236,7 @@ genExprFnFor f depth = do
     re <- genExprExpFor ro depth
     let lo = f / ro
         le = FnCall emptyL p []
-        me = OperMul emptyL le re
+        me = OperInf emptyL predefOperMul le re
         fd = FnExpr n [p] me
     putFnM fd
     el <- genExprLitFor lo
@@ -243,10 +245,6 @@ genExprFnFor f depth = do
 exprToString :: Expr -> String
 exprToString (LitNum  _ d) = "(" ++ show d ++ ")"
 exprToString (Negate  _ e) = "-" ++ exprToString e
-exprToString (OperExp _ el er) = "(" ++ exprToString el ++ " ^ " ++ exprToString er ++ ")"
-exprToString (OperMul _ el er) = "(" ++ exprToString el ++ " * " ++ exprToString er ++ ")"
-exprToString (OperDiv _ el er) = "(" ++ exprToString el ++ " / " ++ exprToString er ++ ")"
-exprToString (OperAdd _ el er) = "(" ++ exprToString el ++ " + " ++ exprToString er ++ ")"
-exprToString (OperSub _ el er) = "(" ++ exprToString el ++ " - " ++ exprToString er ++ ")"
+exprToString (OperInf _ o el er) = "(" ++ exprToString el ++ operString o ++ exprToString er ++ ")"
 exprToString _ = "(a function call)"
 

@@ -3,28 +3,39 @@
 module AST ( FnRef(..)
            , FnDef(..)
            , Expr(..)
+           , Fixity(..)
+           , Operator(..)
            , Stmt(..)
            , getExprLocation
            , getFnName
+           , operString
            , isFnReadOnly
            ) where
 
 import Alias
+import Data.List.NonEmpty (NonEmpty)
 import Text.Printf (printf)
 
-instance Show (Float50 -> Float50) where
+import qualified Data.List.NonEmpty as N
+
+type FN0 = Float50
+type FN1 = (Float50 -> Float50)
+type FN2 = (Float50 -> Float50 -> Float50)
+type FN3 = (Float50 -> Float50 -> Float50 -> Float50)
+
+instance Show FN1 where
     show _ = "(E -> E)"
 
-instance Show (Float50 -> Float50 -> Float50) where
+instance Show FN2 where
     show _ = "(E -> E -> E)"
 
-instance Show (Float50 -> Float50 -> Float50 -> Float50) where
+instance Show FN3 where
     show _ = "(E -> E -> E -> E)"
 
-data FnRef = FnNullary Float50
-           | FnUnary   (Float50 -> Float50)
-           | FnBinary  (Float50 -> Float50 -> Float50)
-           | FnTernary (Float50 -> Float50 -> Float50 -> Float50)
+data FnRef = FnNullary FN0
+           | FnUnary   FN1
+           | FnBinary  FN2
+           | FnTernary FN3
            deriving (Show)
 
 data FnDef = FnReal Name Params FnRef
@@ -38,23 +49,31 @@ instance Eq FnDef where
         na == nb && pa == pb && ea == eb
     _ == _ = False
 
+data Fixity = LFix | RFix deriving (Eq, Show)
+
+data Operator = OpInfix { chars  :: NonEmpty Char
+                        , fixity :: Fixity
+                        , prec   :: Int
+                        , fn     :: FN2
+                        }
+                        deriving (Show)
+
+instance Eq Operator where
+    (OpInfix csl fxl prl _) == (OpInfix csr fxr prr _) =
+        csl == csr && fxl == fxr && prl == prr
+
+operString :: Operator -> String
+operString o = N.toList $ chars o
+
 data Expr = LitNum  Location Float50
           | Negate  Location Expr
-          | OperExp Location Expr Expr
-          | OperMul Location Expr Expr
-          | OperDiv Location Expr Expr
-          | OperAdd Location Expr Expr
-          | OperSub Location Expr Expr
+          | OperInf Location Operator Expr Expr
           | FnCall  Location Name [Expr]
 
 instance Show Expr where
     show (LitNum  _ f) = printf "LitNum %s"   (show f)
     show (Negate  _ e) = printf "Negate (%s)" (show e)
-    show (OperExp _ el er) = printf "OperExp (%s) (%s)" (show el) (show er)
-    show (OperMul _ el er) = printf "OperMul (%s) (%s)" (show el) (show er)
-    show (OperDiv _ el er) = printf "OperDiv (%s) (%s)" (show el) (show er)
-    show (OperAdd _ el er) = printf "OperAdd (%s) (%s)" (show el) (show er)
-    show (OperSub _ el er) = printf "OperSub (%s) (%s)" (show el) (show er)
+    show (OperInf _ op el er) = printf "OperInf %s (%s) (%s)" (show $ operString op) (show el) (show er)
     show (FnCall  _ n es)  = printf "FnCall %s %s" n (show es)
 
 instance Eq Expr where
@@ -62,16 +81,10 @@ instance Eq Expr where
         fl == fr
     (Negate _ el) ==  (Negate _ er) =
         el == er
-    (OperExp _ eal ear) == (OperExp _ ebl ebr) =
-        eal == ebl && ear == ebr
-    (OperMul _ eal ear) == (OperMul _ ebl ebr) =
-        eal == ebl && ear == ebr
-    (OperDiv _ eal ear) == (OperDiv _ ebl ebr) =
-        eal == ebl && ear == ebr
-    (OperAdd _ eal ear) == (OperAdd _ ebl ebr) =
-        eal == ebl && ear == ebr
-    (OperSub _ eal ear) == (OperSub _ ebl ebr) =
-        eal == ebl && ear == ebr
+    (OperInf _ opl eal ear) == (OperInf _ opr ebl ebr) =
+        let osl = operString opl
+            osr = operString opr
+         in osl == osr && eal == ebl && ear == ebr
     (FnCall  _ nl esl) == (FnCall  _ nr esr) =
         nl == nr && esl == esr
     _ == _ = False
@@ -79,12 +92,8 @@ instance Eq Expr where
 getExprLocation :: Expr -> Location
 getExprLocation (LitNum  l _)   = l
 getExprLocation (Negate  l _)   = l
-getExprLocation (OperExp l _ _) = l
-getExprLocation (OperMul l _ _) = l
-getExprLocation (OperDiv l _ _) = l
-getExprLocation (OperAdd l _ _) = l
-getExprLocation (OperSub l _ _) = l
-getExprLocation (FnCall  l _ _) = l
+getExprLocation (OperInf l _ _ _) = l
+getExprLocation (FnCall  l _ _)   = l
 
 data Stmt = StmtFnDef Location FnDef
           | StmtExpr  Location Expr

@@ -31,55 +31,13 @@ nlitf _ = Nothing
 pattern NFL f <- (nlitf -> Just f)
 pattern NFL_ <- (NFL _)
 
-expp :: Expr -> Maybe (String, Expr, Expr)
-expp (OperExp _ el er) = Just ("^", el, er)
-expp _ = Nothing
+ff :: Expr -> Maybe Expr
+ff f@FL_ = Just f
+ff f@(FnCall _ _ _) = Just f
+ff _ = Nothing
 
-pattern EX o el er <- (expp -> Just (o, el, er))
-pattern EX_ <- (EX _ _ _)
-
-gteqExp :: Expr -> Bool
-gteqExp (FnCall _ _ _) = True
-gteqExp (OperExp _ _ _) = True
-gteqExp _ = False
-
-pattern GEX <- (gteqExp -> True)
-
-addSub :: Expr -> Maybe (String, Expr, Expr)
-addSub (OperAdd _ el er) = Just ("+", el, er)
-addSub (OperSub _ el er) = Just ("-", el, er)
-addSub _ = Nothing
-
-pattern AS o el er <- (addSub -> Just (o, el, er))
-pattern AS_ <- (addSub -> Just (_, _, _))
-
-gteqAddSub :: Expr -> Bool
-gteqAddSub (FnCall _ _ _) = True
-gteqAddSub (OperExp _ _ _) = True
-gteqAddSub (OperDiv _ _ _) = True
-gteqAddSub (OperMul _ _ _) = True
-gteqAddSub (OperAdd _ _ _) = True
-gteqAddSub (OperSub _ _ _) = True
-gteqAddSub _ = False
-
-pattern GAS <- (gteqAddSub -> True)
-
-mulDiv :: Expr -> Maybe (String, Expr, Expr)
-mulDiv (OperDiv _ el er) = Just ("/", el, er)
-mulDiv (OperMul _ el er) = Just ("*", el, er)
-mulDiv _ = Nothing
-
-pattern MD o el er <- (mulDiv -> Just (o, el, er))
-pattern MD_ <- (MD _ _ _)
-
-gteqMulDiv :: Expr -> Bool
-gteqMulDiv (FnCall _ _ _) = True
-gteqMulDiv (OperExp _ _ _) = True
-gteqMulDiv (OperDiv _ _ _) = True
-gteqMulDiv (OperMul _ _ _) = True
-gteqMulDiv _ = False
-
-pattern GMD <- (gteqMulDiv -> True)
+pattern FF e <- (ff -> Just e)
+pattern FF_ <- (FF _)
 
 lit :: Expr -> Maybe Expr
 lit e@(Negate _ (LitNum _ _)) = Just e
@@ -88,53 +46,43 @@ lit _ = Nothing
 
 pattern L e <- (lit -> Just e)
 
-binOp :: Expr -> Maybe (String, Expr, Expr)
-binOp (EX o el er) = Just (o, el, er)
-binOp (MD o el er) = Just (o, el, er)
-binOp (AS o el er) = Just (o, el, er)
-binOp _ = Nothing
-
-pattern BO o el er <- (binOp -> Just (o, el, er))
-pattern BL o el er <- (BO o (L el) (L er))
-
 data Unparse  a = ZeroPlus (NonEmpty (Unparse a))
-                | OnePlus  (NonEmpty (Unparse a))
                 | None     (NonEmpty (Unparse a))
                 | Token a
                 deriving Show
 
-opNone :: String -> Expr -> Expr -> Unparse String
-opNone o el er = ZeroPlus [unparseExpr el, Token o, unparseExpr er]
+op = \e -> None [Token "(", unparseExpr e, Token ")"]
+np = \e -> None [unparseExpr e]
 
-opLeft :: String -> Expr -> Expr -> Unparse String
-opLeft o el er = ZeroPlus [OnePlus [unparseExpr el], Token o, unparseExpr er]
+pattern OPFP f p <- (OpInfix _ f p _)
+
+parenl :: Operator -> Operator -> Expr -> Unparse String
+parenl (OPFP RFix pp) (OPFP RFix pc) e | pp >= pc = op e
+parenl (OPFP _ pp)    (OPFP _ pc)    e | pp >  pc = op e 
+parenl _ _ e = np e
 
 
-opRght :: String -> Expr -> Expr -> Unparse String
-opRght o el er = ZeroPlus [unparseExpr el, Token o, OnePlus [unparseExpr er]]
+parenr :: Operator -> Operator -> Expr -> Unparse String
+parenr (OPFP LFix pp) (OPFP LFix pc) e | pp >= pc = op e
+parenr (OPFP _ pp)    (OPFP _ pc)    e | pp >  pc = op e
+parenr _ _ e = np e
 
-opBoth :: String -> Expr -> Expr -> Unparse String
-opBoth o el er = ZeroPlus [OnePlus [unparseExpr el], Token o, OnePlus [unparseExpr er]]
+inFix :: Expr -> Maybe (Operator, Expr, Expr)
+inFix (OperInf _ o el er) = Just (o, el, er)
+inFix _ = Nothing
+
+pattern IFX o el er <- (OperInf _ o el er)
+
+mkOpToken :: Operator -> Unparse String
+mkOpToken o = Token $ operString $ o
 
 unparseExpr :: Expr -> Unparse String
-unparseExpr (FL f)               = ZeroPlus [Token $ show f]
-unparseExpr (BL o el er)         = opNone o el er
-unparseExpr (EX o (L el) er@GEX) = opNone o el er
-unparseExpr (EX o el@GEX er@GEX) = opNone o el er
-unparseExpr (EX o el@GEX (L er)) = opNone o el er
-unparseExpr (EX o (L el) er)     = opRght o el er
-unparseExpr (EX o el (L er))     = opLeft o el er
-unparseExpr (EX o el er)         = opBoth o el er
-unparseExpr (MD o el@GMD (L er)) = opNone o el er
-unparseExpr (MD o el@GMD er@GMD) = opNone o el er
-unparseExpr (MD o (L el) er@GMD) = opNone o el er
-unparseExpr (MD o el (L er))     = opLeft o el er
-unparseExpr (MD o (L el) er)     = opRght o el er
-unparseExpr (MD o el er)         = opBoth o el er
-unparseExpr (AS o el@GAS (L er)) = opNone o el er
-unparseExpr (AS o el@GAS er@GAS) = opNone o el er
-unparseExpr (AS o (L el) er@GAS) = opNone o el er
-unparseExpr (AS o el er)         = opNone o el er
+unparseExpr (FL f)                                     = ZeroPlus [Token $ show f]
+unparseExpr (IFX op (FF el)          er@(IFX oc _ _))  = ZeroPlus [unparseExpr el,   mkOpToken op, parenr op oc er ]
+unparseExpr (IFX op el@(IFX oc  _ _) (FF er))          = ZeroPlus [parenl op oc el,  mkOpToken op, unparseExpr er  ]
+unparseExpr (IFX op el@(IFX ocl _ _) er@(IFX ocr _ _)) = ZeroPlus [parenl op ocl el, mkOpToken op, parenr op ocr er]
+unparseExpr (IFX op el er)  = ZeroPlus [unparseExpr el, mkOpToken op, unparseExpr er]
+-- We are missing a case for negated function calls here
 unparseExpr (Negate _ e)    = ZeroPlus [Token "-(", unparseExpr e, Token ")"]
 unparseExpr (FnCall _ n []) = ZeroPlus [Token n]
 unparseExpr (FnCall _ n es) =
@@ -155,9 +103,9 @@ rangeMax = 12 :: Int
 
 unparseFnArgs :: [Expr] -> [Unparse String]
 unparseFnArgs []         = []
-unparseFnArgs (e@NFL_:es) = OnePlus [unparseExpr e] : unparseFnArgs es
+unparseFnArgs (e@NFL_:es) = None [Token "(", unparseExpr e, Token ")"] : unparseFnArgs es
 unparseFnArgs (e@FL_ :es) = unparseExpr e : unparseFnArgs es
-unparseFnArgs (e     :es) = OnePlus [unparseExpr e] : unparseFnArgs es
+unparseFnArgs (e     :es) = None [Token "(", unparseExpr e, Token ")"] : unparseFnArgs es
 
 unparseFnDef :: FnDef -> Unparse String
 unparseFnDef (FnExpr n [] e) = None [Token n, Token "=", unparseExpr e]
@@ -176,7 +124,6 @@ unparseStmts ss = unparseStmt <$> ss
 
 unparseToString :: Unparse String -> String
 unparseToString (ZeroPlus (x :| xs)) = "_ " ++ unparseToString x ++ (foldMap unparseToString xs) ++ " _"
-unparseToString (OnePlus  (x :| xs)) = "(" ++ unparseToString x ++ (foldMap unparseToString xs) ++ ")"
 unparseToString (None     (x :| xs)) = unparseToString x ++ (foldMap unparseToString xs)
 unparseToString (Token s) = s
 
@@ -214,12 +161,6 @@ genUnparse (ZeroPlus us) = do
     bs         <- genSpacing
     as         <- genSpacing
     (ops, cps) <- genParens 0
-    cs         <- foldlM unparseFoldMap "" us
-    return (bs ++ ops ++ cs ++ cps ++ as)
-genUnparse (OnePlus us) = do
-    bs         <- genSpacing
-    as         <- genSpacing
-    (ops, cps) <- genParens 1
     cs         <- foldlM unparseFoldMap "" us
     return (bs ++ ops ++ cs ++ cps ++ as)
 genUnparse (None us) = do

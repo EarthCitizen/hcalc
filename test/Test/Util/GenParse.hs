@@ -17,7 +17,7 @@ genList = Gen.list (Range.linear 0 200)
 genFnName :: (MonadGen m) => m String
 genFnName = do
     c1 <- Gen.alpha
-    cx <- Gen.list (Range.linear 0 50) Gen.alphaNum
+    cx <- Gen.list (Range.linear 0 200) Gen.alphaNum
     return (c1:cx)
 
 genFloat :: (MonadGen m) => m Float50

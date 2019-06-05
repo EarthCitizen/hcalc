@@ -2,18 +2,20 @@ module TestEval where
 
 import Debug.Trace (trace, traceM)
 
-import Alias
 import AST
+import Alias
 import Error (Error)
-import qualified Data.Map.Strict as M
-import qualified Eval as E
 import FnStore (emptyFnStore)
 import GHC.Stack (HasCallStack)
 import Hedgehog
+import Predef
+import Test.Util.Data
+import Test.Util.GenEval
+
+import qualified Data.Map.Strict as M
+import qualified Eval as E
 import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
-import Test.Util.Data (emptyL, testCount)
-import Test.Util.GenEval
 
 exprSplitSize = 7 :: Size
 
@@ -54,7 +56,7 @@ hprop_eval_Adds =
             ro' <- genFloat
             return (lo', ro')
         let expected = Right (lo + ro)
-            expr     = OperAdd emptyL (LitNum emptyL lo) (LitNum emptyL ro)
+            expr     = operAdd_ (LitNum emptyL lo) (LitNum emptyL ro)
             actual   = E.eval expr emptyFnStore
         actual ~=== expected
 
@@ -66,7 +68,7 @@ hprop_eval_Subtracts =
             ro' <- genFloat
             return (lo', ro')
         let expected = Right (lo - ro)
-            expr     = OperSub emptyL (LitNum emptyL lo) (LitNum emptyL ro)
+            expr     = operSub_ (LitNum emptyL lo) (LitNum emptyL ro)
             actual   = E.eval expr emptyFnStore
         actual ~=== expected
 
@@ -78,7 +80,7 @@ hprop_eval_Multiplies =
             ro' <- genFloat
             return (lo', ro')
         let expected = Right (lo * ro)
-            expr     = OperMul emptyL (LitNum emptyL lo) (LitNum emptyL ro)
+            expr     = operMul_ (LitNum emptyL lo) (LitNum emptyL ro)
         E.eval expr emptyFnStore ~=== expected
 
 hprop_eval_Divides :: Property
@@ -89,7 +91,7 @@ hprop_eval_Divides =
             ro' <- genFloat
             return (lo', ro')
         let expected = Right (lo / ro)
-            expr     = OperDiv emptyL (LitNum emptyL lo) (LitNum emptyL ro)
+            expr     = operDiv_ (LitNum emptyL lo) (LitNum emptyL ro)
             actual   = E.eval expr emptyFnStore
         actual ~=== expected
 
@@ -101,7 +103,7 @@ hprop_eval_Raises =
             ro' <- genFloatBetween (-10) 10
             return (lo', ro')
         let expected = Right (lo ** ro)
-            expr     = OperExp emptyL (LitNum emptyL lo) (LitNum emptyL ro)
+            expr     = operExp_ (LitNum emptyL lo) (LitNum emptyL ro)
             actual   = E.eval expr emptyFnStore
         actual ~=== expected
 
@@ -111,7 +113,7 @@ hprop_eval_ExecutesNullaryFunctions =
         (fn, fd, v) <- forAll $ do
             fnName <- genFnName
             num    <- genFloat
-            let expr = LitNum emptyL num
+            let expr = litNum_ num
             return (fnName, FnExpr fnName [] expr, num)
         let expected = Right (v)
             store    = M.fromList [(fn,fd)]
@@ -126,15 +128,15 @@ hprop_eval_ExecutesBinaryFunctions =
             fnName <- genFnName
             numl   <- genFloat
             numr   <- genFloat
-            let fl   = FnCall emptyL "a" []
-                fr   = FnCall emptyL "b" []
-                expr = OperSub emptyL fl fr
-                pl   = LitNum emptyL numl
-                pr   = LitNum emptyL numr
+            let fl   = fnCall_ "a" []
+                fr   = fnCall_ "b" []
+                expr = operSub_ fl fr
+                pl   = litNum_ numl
+                pr   = litNum_ numr
             return (fnName, FnExpr fnName ["a", "b"] expr, [pl, pr], numl - numr)
         let expected = Right (ve)
             store    = M.fromList [(fn,fd)]
-            expr     = FnCall emptyL fn plist
+            expr     = fnCall_ fn plist
             actual   = E.eval expr store
         actual ~=== expected
 
@@ -146,17 +148,17 @@ hprop_eval_ExecutesTernaryFunctions =
             numl   <- genFloat
             numm   <- genFloat
             numr   <- genFloat
-            let fl   = FnCall emptyL "a" []
-                fm   = FnCall emptyL "b" []
-                fr   = FnCall emptyL "c" []
-                expr = OperSub emptyL (OperSub emptyL fl fm) fr
-                pl   = LitNum emptyL numl
-                pm   = LitNum emptyL numm
-                pr   = LitNum emptyL numr
+            let fl   = fnCall_ "a" []
+                fm   = fnCall_ "b" []
+                fr   = fnCall_ "c" []
+                expr = operSub_ (operSub_ fl fm) fr
+                pl   = litNum_ numl
+                pm   = litNum_ numm
+                pr   = litNum_ numr
             return (fnName, FnExpr fnName ["a", "b", "c"] expr, [pl, pm, pr], (numl - numm) - numr)
         let expected = Right (ve)
             store    = M.fromList [(fn,fd)]
-            expr     = FnCall emptyL fn plist
+            expr     = fnCall_ fn plist
             actual   = E.eval expr store
         actual ~=== expected
 

@@ -3,17 +3,20 @@ module Test.Util.Data where
 import Alias (Location)
 import AST
 import Hedgehog (TestLimit)
+import Predef
+
+import qualified Data.Map.Strict as M
 
 emptyL :: Location
 emptyL = ("", 0, 0)
 
 litNum_  = LitNum emptyL
 negate_  = Negate emptyL
-operExp_ = OperExp emptyL
-operMul_ = OperMul emptyL
-operDiv_ = OperDiv emptyL
-operAdd_ = OperAdd emptyL
-operSub_ = OperSub emptyL
+operExp_ = OperInf emptyL predefOperExp
+operMul_ = OperInf emptyL predefOperMul
+operDiv_ = OperInf emptyL predefOperDiv
+operAdd_ = OperInf emptyL predefOperAdd
+operSub_ = OperInf emptyL predefOperSub
 fnCall_  = FnCall emptyL
 
 stmtFnDef_ = StmtFnDef emptyL

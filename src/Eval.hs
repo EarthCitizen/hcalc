@@ -42,11 +42,7 @@ withStore s = local (\(EvalState os l) -> EvalState s l)
 evalExpr :: Expr -> EvalContext Float50
 evalExpr (LitNum _ f) = return f
 evalExpr (Negate _ en)  = negate <$> evalExpr en
-evalExpr (OperExp _ el er) = (**) <$> evalExpr el <*> evalExpr er
-evalExpr (OperMul _ el er) = (*)  <$> evalExpr el <*> evalExpr er
-evalExpr (OperDiv _ el er) = (/)  <$> evalExpr el <*> evalExpr er
-evalExpr (OperAdd _ el er) = (+)  <$> evalExpr el <*> evalExpr er
-evalExpr (OperSub _ el er) = (-)  <$> evalExpr el <*> evalExpr er
+evalExpr (OperInf _ (OpInfix _ _ _ f) el er) = f <$> evalExpr el <*> evalExpr er
 evalExpr (FnCall l name exps) =
     let action = lookupFn name >>= \fd -> callFnDef fd exps
      in withLocation l action
