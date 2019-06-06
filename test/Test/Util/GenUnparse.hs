@@ -16,38 +16,33 @@ import qualified Data.List.NonEmpty as N
 import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
 
-litf :: Expr -> Maybe Float50
-litf (Negate _ (LitNum _ f)) = Just (negate f)
-litf (LitNum _ f) = Just f
-litf _ = Nothing
+litn :: Expr -> Maybe Float50
+litn (LitNum _ f) = Just f
+litn _ = Nothing
 
-pattern FL f <- (litf -> Just f)
-pattern FL_ <- (FL _)
+pattern LN f <- (litn -> Just f)
+pattern LN_ <- (LN _)
 
-nlitf :: Expr -> Maybe Float50
-nlitf (Negate _ (LitNum _ f)) = Just (negate f)
-nlitf _ = Nothing
+fncl :: Expr -> Bool
+fncl (FnCall _ _ _) = True
+fncl _ = False
 
-pattern NFL f <- (nlitf -> Just f)
-pattern NFL_ <- (NFL _)
+pattern FN_ <- (fncl -> True)
 
-ff :: Expr -> Maybe Expr
-ff f@FL_ = Just f
-ff f@(FnCall _ _ _) = Just f
-ff _ = Nothing
+pattern NG e <- (Negate _ e)
+pattern NG_  <- (Negate _ _)
 
-pattern FF e <- (ff -> Just e)
-pattern FF_ <- (FF _)
+term :: Expr -> Bool
+term (LN_) = True
+term (FN_) = True
+term (NG_) = True
+term _ = False
 
-lit :: Expr -> Maybe Expr
-lit e@(Negate _ (LitNum _ _)) = Just e
-lit e@(LitNum _ _) = Just e
-lit _ = Nothing
-
-pattern L e <- (lit -> Just e)
+pattern TM_ <- (term -> True)
 
 data Unparse  a = ZeroPlus (NonEmpty (Unparse a))
                 | None     (NonEmpty (Unparse a))
+                | OneOf    (NonEmpty (Unparse a))
                 | Token a
                 deriving Show
 
@@ -71,21 +66,26 @@ inFix :: Expr -> Maybe (Operator, Expr, Expr)
 inFix (OperInf _ o el er) = Just (o, el, er)
 inFix _ = Nothing
 
-pattern IFX o el er <- (OperInf _ o el er)
+pattern IF o el er <- (OperInf _ o el er)
 
 mkOpToken :: Operator -> Unparse String
 mkOpToken o = Token $ operString $ o
 
+prefixNeg (LitNum l f)    = unparseExpr (LitNum l (negate f))
+prefixNeg (FnCall l n es) = unparseExpr (FnCall l ('-':n) es)
+
+parenNeg e = ZeroPlus [Token "-(", unparseExpr e, Token ")"]
+
 unparseExpr :: Expr -> Unparse String
-unparseExpr (FL f)                                     = ZeroPlus [Token $ show f]
-unparseExpr (IFX op (FF el)          er@(IFX oc _ _))  = ZeroPlus [unparseExpr el,   mkOpToken op, parenr op oc er ]
-unparseExpr (IFX op el@(IFX oc  _ _) (FF er))          = ZeroPlus [parenl op oc el,  mkOpToken op, unparseExpr er  ]
-unparseExpr (IFX op el@(IFX ocl _ _) er@(IFX ocr _ _)) = ZeroPlus [parenl op ocl el, mkOpToken op, parenr op ocr er]
-unparseExpr (IFX op el er)  = ZeroPlus [unparseExpr el, mkOpToken op, unparseExpr er]
--- We are missing a case for negated function calls here
-unparseExpr (Negate _ e)    = ZeroPlus [Token "-(", unparseExpr e, Token ")"]
-unparseExpr (FnCall _ n []) = ZeroPlus [Token n]
-unparseExpr (FnCall _ n es) =
+unparseExpr (LN f)                                  = ZeroPlus [Token $ show f]
+unparseExpr (IF op el@TM_          er@(IF oc _ _))  = ZeroPlus [unparseExpr el,   mkOpToken op, parenr op oc er ]
+unparseExpr (IF op el@(IF oc  _ _) er@TM_)          = ZeroPlus [parenl op oc el,  mkOpToken op, unparseExpr er  ]
+unparseExpr (IF op el@(IF ocl _ _) er@(IF ocr _ _)) = ZeroPlus [parenl op ocl el, mkOpToken op, parenr op ocr er]
+unparseExpr (IF op el er)   = ZeroPlus [unparseExpr el, mkOpToken op, unparseExpr er]
+unparseExpr (NG e@TM_) = OneOf    [prefixNeg e, parenNeg e]
+unparseExpr (NG e)     = parenNeg e
+unparseExpr (FnCall _ n [])  = ZeroPlus [Token n]
+unparseExpr (FnCall _ n es)  =
     let tks   = repeat $ Token " "
         upfas = merge tks $ unparseFnArgs es
      in ZeroPlus $ Token n <| N.fromList upfas
@@ -96,6 +96,10 @@ merge [] _  = []
 merge _  [] = []
 merge (a:as) (b:bs) = a : b : merge as bs
 
+replace :: Eq a => a -> a -> [a] -> [a]
+replace _ _ [] = []
+replace a b (x:xs) = (if x == a then b else x) : replace a b xs
+
 split :: [a] -> [[a]]
 split = map $ \a -> [a]
 
@@ -103,9 +107,9 @@ rangeMax = 12 :: Int
 
 unparseFnArgs :: [Expr] -> [Unparse String]
 unparseFnArgs []         = []
-unparseFnArgs (e@NFL_:es) = None [Token "(", unparseExpr e, Token ")"] : unparseFnArgs es
-unparseFnArgs (e@FL_ :es) = unparseExpr e : unparseFnArgs es
-unparseFnArgs (e     :es) = None [Token "(", unparseExpr e, Token ")"] : unparseFnArgs es
+unparseFnArgs (e@LN_ :es)           = unparseExpr e : unparseFnArgs es
+-- Handles negation, function calls, subexpressions
+unparseFnArgs (e     :es)           = None [Token "(", unparseExpr e, Token ")"] : unparseFnArgs es
 
 unparseFnDef :: FnDef -> Unparse String
 unparseFnDef (FnExpr n [] e) = None [Token n, Token "=", unparseExpr e]
@@ -125,6 +129,7 @@ unparseStmts ss = unparseStmt <$> ss
 unparseToString :: Unparse String -> String
 unparseToString (ZeroPlus (x :| xs)) = "_ " ++ unparseToString x ++ (foldMap unparseToString xs) ++ " _"
 unparseToString (None     (x :| xs)) = unparseToString x ++ (foldMap unparseToString xs)
+unparseToString (OneOf    (x :| xs)) = " | " ++ unparseToString x ++ (foldMap (\u -> " OR " ++ unparseToString u) xs) ++ " | "
 unparseToString (Token s) = s
 
 genParens :: (MonadGen m) => Int -> m (String, String)
@@ -168,6 +173,8 @@ genUnparse (None us) = do
     as <- genSpacing
     cs <- foldlM unparseFoldMap "" us
     return (bs ++ cs ++ as)
+genUnparse (OneOf us) = do
+    Gen.element (N.toList us) >>= genUnparse
 
 unparseFoldMap :: (MonadGen m) => String -> Unparse String -> m String
 unparseFoldMap s u = do

@@ -17,7 +17,7 @@ import Test.Tasty (TestTree)
 import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
 
-import Hedgehog.Internal.Property (Property(..), PropertyConfig(..))
+-- import Hedgehog.Internal.Property (Property(..), PropertyConfig(..))
 
 genStringStmts :: (MonadGen m) => m (String, [Stmt])
 genStringStmts = do
@@ -63,7 +63,7 @@ spec_parseLine = do
 
 hprop_parseLine_parses_expressions :: Property
 hprop_parseLine_parses_expressions =
-    withTests 250 $ property $ do
+    withTests 500 $ property $ do
         (s, ss) <- forAll $ Gen.scale (\s -> min s 15) $ genStringStmts
         let expected = Right ss :: Either Error [Stmt]
             actual   = parseLine s

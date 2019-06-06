@@ -35,7 +35,8 @@ genExpr = do
              , operSub_ <$> genExpr   <*> genExpr
              , fnCall_  <$> genFnName <*> (genList genExpr)
              ]
-    Gen.recursive Gen.choice nr rc
+        ng = (fmap . fmap ) negate_ rc
+    Gen.recursive Gen.choice nr (rc ++ ng)
 
 genFnDef :: (MonadGen m) => m FnDef
 genFnDef = FnExpr <$> genFnName <*> (genList genFnName) <*> genExpr
